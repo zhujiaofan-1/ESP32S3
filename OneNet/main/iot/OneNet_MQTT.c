@@ -1,4 +1,5 @@
 #include "OneNet_MQTT.h"
+#include "cJSON.h"
 #include "esp_event_base.h"
 #include "onenet_token.h"
 #include "mqtt_client.h"
@@ -6,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include "OneNet_dm.h"
+
 
 #define TAG     "OneNet"
 
@@ -22,27 +25,56 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     switch ((esp_mqtt_event_id_t)event_id) {
     case MQTT_EVENT_CONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+
+        //连接成功时订阅主题
+        OneNet_subscribe(mqtt_handle);
+
+        //订阅之后要上报所有数据,为了数据同步
+        cJSON* property_js = OneNet_property_upload();
+        char* data = cJSON_PrintUnformatted(property_js);
+
+        OneNet_post_property_data(mqtt_handle, data);
+
+        cJSON_free(property_js);
+        cJSON_free(data);
       
         break;
+
     case MQTT_EVENT_DISCONNECTED:
         ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
-        
-        
         break;
+
     case MQTT_EVENT_UNSUBSCRIBED:
         ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
         break;
+
     case MQTT_EVENT_PUBLISHED:
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
-    case MQTT_EVENT_DATA:
+
+    case MQTT_EVENT_DATA:           //下行数据事件
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
+
+        //判断下行数据主题,是否包含   property/set
+        if(strstr(event->topic, "property/set") != 0)
+        {
+            //生成CJSO对象
+            cJSON* property_js = cJSON_Parse(event->data);
+            
+            OneNet_property_handle(property_js);
+            //取出下发id，用于回应数据
+            cJSON* id_js = cJSON_GetObjectItem(property_js, "id");
+            OneNet_property_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
+
+            cJSON_free(property_js);
+        }
+
         break;
     case MQTT_EVENT_ERROR:
         ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -68,12 +100,12 @@ esp_err_t OneNet_Start(void)
     mqtt_config.broker.address.port = 1883;
 
     //验证信息
-    mqtt_config.credentials.client_id = ONE_DEVICE_NAME;
+    mqtt_config.credentials.client_id = ONENET_DEVICE_NAME;
     mqtt_config.credentials.username = ONENET_PRODUCT_ID;
 
     //调用函数计算token
     static char token[512];
-    dev_token_generate(token, SIG_METHOD_SHA1, 1790855684, ONENET_PRODUCT_ID, ONE_DEVICE_NAME, ONENET_PRODUCT_ACCESS_KEY);
+    dev_token_generate(token, SIG_METHOD_SHA1, 1790855684, ONENET_PRODUCT_ID, ONENET_DEVICE_NAME, ONENET_PRODUCT_ACCESS_KEY);
     mqtt_config.credentials.authentication.password = token;
 
     ESP_LOGI(TAG, "Generated Token: %s", token);
@@ -89,3 +121,5 @@ esp_err_t OneNet_Start(void)
     //启动mqtt连接
     return esp_mqtt_client_start(mqtt_handle);
 }
+
+

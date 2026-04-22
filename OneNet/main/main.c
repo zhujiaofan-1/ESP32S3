@@ -12,6 +12,7 @@
 #include "nvs_flash.h"
 #include "OneNet_MQTT.h"
 #include "portmacro.h"
+#include "OneNet_dm.h"
 
 #define TAG     "main"
 
@@ -85,6 +86,8 @@ void app_main(void)
     nvs_flash_init();
 
     WIFi_ev = xEventGroupCreate();
+
+    OneNet_dm_Init();
 
     button_Init();
 
