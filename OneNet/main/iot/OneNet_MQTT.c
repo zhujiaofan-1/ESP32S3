@@ -30,10 +30,10 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         OneNet_subscribe(mqtt_handle);
 
         //订阅之后要上报所有数据,为了数据同步
-        cJSON* property_js = OneNet_property_upload();
-        char* data = cJSON_PrintUnformatted(property_js);
+        cJSON* property_js = OneNet_property_upload();                  //获取设备属性
+        char* data = cJSON_PrintUnformatted(property_js);          //取出数据
 
-        OneNet_post_property_data(mqtt_handle, data);
+        OneNet_post_property_data(mqtt_handle, data);                   //上报所有数据
 
         cJSON_free(property_js);
         cJSON_free(data);
@@ -61,7 +61,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
 
-        //判断下行数据主题,是否包含   property/set
+        //判断下行数据主题,是否包含设备属性设置   property/set  
         if(strstr(event->topic, "property/set") != 0)
         {
             //生成CJSO对象
@@ -72,7 +72,23 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             cJSON* id_js = cJSON_GetObjectItem(property_js, "id");
             OneNet_property_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
 
-            cJSON_free(property_js);
+            cJSON_Delete(property_js);
+        }
+
+        //判断下行数据主题,是否包含OTA通知   ota/inform
+        if(strstr(event->topic, "ota/inform") != 0)
+        {
+            //生成CJSO对象
+            cJSON* ota_js = cJSON_Parse(event->data);
+            
+            OneNet_property_handle(ota_js);
+            //取出下发id，用于回应数据
+            cJSON* id_js = cJSON_GetObjectItem(ota_js, "id");
+            OneNet_ota_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
+
+            cJSON_Delete(ota_js);
+
+            //开始OTA升级流程
         }
 
         break;

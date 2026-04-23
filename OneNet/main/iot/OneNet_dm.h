@@ -15,6 +15,8 @@ cJSON* OneNet_property_upload(void);
 
 //下行回应数据
 void OneNet_property_ack(esp_mqtt_client_handle_t mqtt_handle, const char* id, int error_code, const char* msg);
+//OTA升级回应
+void OneNet_ota_ack(esp_mqtt_client_handle_t mqtt_handle, const char* id, int error_code, const char* msg);
 
 //主题订阅函数
 void OneNet_subscribe(esp_mqtt_client_handle_t mqtt_handle);
