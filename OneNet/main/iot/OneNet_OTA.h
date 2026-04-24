@@ -12,4 +12,6 @@ void set_app_valid(int valid);
 //上报版本号
 esp_err_t OneNet_ota_upload_version(void);
 
+void OneNet_ota_start(void);
+
 #endif

@@ -1,4 +1,5 @@
 #include "OneNet_MQTT.h"
+#include "OneNet_OTA.h"
 #include "cJSON.h"
 #include "esp_event_base.h"
 #include "onenet_token.h"
@@ -8,6 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 #include "OneNet_dm.h"
+#include "OneNet_OTA.h"
 
 
 #define TAG     "OneNet"
@@ -23,7 +25,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
     esp_mqtt_client_handle_t client = event->client;
     int msg_id;
     switch ((esp_mqtt_event_id_t)event_id) {
-    case MQTT_EVENT_CONNECTED:
+    case MQTT_EVENT_CONNECTED:              //连接成功
         ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
 
         //连接成功时订阅主题
@@ -38,6 +40,12 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         cJSON_free(property_js);
         cJSON_free(data);
       
+        
+        //上报OTA版本号
+        OneNet_ota_upload_version();
+        //标记当前程序合法,连上平台说明合法
+        set_app_valid(true);
+
         break;
 
     case MQTT_EVENT_DISCONNECTED:
@@ -74,14 +82,13 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
             cJSON_Delete(property_js);
         }
-
         //判断下行数据主题,是否包含OTA通知   ota/inform
-        if(strstr(event->topic, "ota/inform") != 0)
+        else if(strstr(event->topic, "ota/inform"))
         {
+            ESP_LOGI(TAG, "收到OTA通知");
             //生成CJSO对象
             cJSON* ota_js = cJSON_Parse(event->data);
             
-            OneNet_property_handle(ota_js);
             //取出下发id，用于回应数据
             cJSON* id_js = cJSON_GetObjectItem(ota_js, "id");
             OneNet_ota_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
@@ -89,6 +96,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             cJSON_Delete(ota_js);
 
             //开始OTA升级流程
+            OneNet_ota_start();
         }
 
         break;

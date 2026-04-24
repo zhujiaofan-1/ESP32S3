@@ -33,9 +33,9 @@ static char *Init_web_page_buffer(void)
     esp_vfs_spiffs_conf_t spiffs_conf =
     {
         .base_path = SPIFF_MOUNT,
-        .format_if_mount_failed = false,
+        .format_if_mount_failed = true,
         .max_files = 3,
-        .partition_label = NULL,
+        .partition_label = "html",
     };
     esp_vfs_spiffs_register(&spiffs_conf);
 

@@ -10,6 +10,7 @@
 #include <string.h>
 #include "esp_http_client.h"
 #include "esp_log.h"
+#include "freertos/idf_additions.h"
 #include "onenet_token.h"
 #include "esp_https_ota.h"
 
@@ -17,6 +18,9 @@
 #define TOKEN_VALID_TIMERSTAMP      1790855684
 
 #define ONENET_OTA_URL      "http://iot-api.heclouds.com/fuse-ota"
+
+//任务运行标志
+static bool ota_is_running = false;
 
 //目标版本号和任务id
 static char target_version[32] = {0};
@@ -124,7 +128,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
         case HTTP_EVENT_ON_DATA:                //http
         {
             ESP_LOGI(TAG, "HTTP_EVENT_ON_DATA, len=%d", evt->data_len);
-            printf("HTTP_EVENT_ON_DATA data=%.*s\r\n",evt->data_len,evt->data);
+            printf("HTTP_EVENT_ON_DATA data=%.*s\r\n",evt->data_len,(char*)evt->data);
 
             int copy_len = 0;
             //如果大于剩余空间的话
@@ -139,6 +143,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 
             //拷贝数据
             memcpy(&ota_data_buf[ota_data_size], evt->data, copy_len);
+            ota_data_size += copy_len;
             break;
         }
             
@@ -373,7 +378,7 @@ Content-Length:20
 */
 
 //上报任务升级状态
-esp_err_t OneNet_ota_check_task(int step)
+esp_err_t OneNet_ota_upload_state(int step)
 {
     char url[128];     
     char payload[16];
@@ -383,7 +388,7 @@ esp_err_t OneNet_ota_check_task(int step)
     snprintf(payload, sizeof(payload), "{\"step\":%d} ", step); 
     
     //发送请求
-    esp_err_t ret = OneNet_ota_http_connect(url, HTTP_METHOD_POST, version);
+    esp_err_t ret = OneNet_ota_http_connect(url, HTTP_METHOD_POST, payload);
     
 
 
@@ -431,16 +436,19 @@ host:iot-api.heclouds.com
 */
 
     static char token[256];
+    esp_err_t ret = ESP_FAIL;
     memset(token, 0, 256);
 
-    dev_token_generate(token, SIG_METHOD_SHA256, TOKEN_VALID_TIMERSTAMP, ONENET_PRODUCT_ID, NULL, ONENET_PRODUCT_ACCESS_KEY);
+    ret = dev_token_generate(token, SIG_METHOD_SHA256, TOKEN_VALID_TIMERSTAMP, ONENET_PRODUCT_ID, NULL, ONENET_PRODUCT_ACCESS_KEY);
      // POST
      //设置方法
-    esp_http_client_set_method(client, HTTP_METHOD_GET);             
+    ret = esp_http_client_set_method(client, HTTP_METHOD_GET);             
     //设置请求头
-    esp_http_client_set_header(client, "Content-Type", "application/json");
-    esp_http_client_set_header(client, "host", "iot-api.heclouds.com");
-    esp_http_client_set_header(client, "Authorization", token);
+    ret = esp_http_client_set_header(client, "Content-Type", "application/json");
+    ret = esp_http_client_set_header(client, "host", "iot-api.heclouds.com");
+    ret = esp_http_client_set_header(client, "Authorization", token);
+
+    return ret;
 }
 
 
@@ -483,4 +491,77 @@ esp_err_t OneNet_ota_download(int tid)
     }
 
     return ota_ret;
+}
+
+
+
+
+//执行操作的任务
+static void OneNet_ota_Task(void* param)
+{
+    esp_err_t ret = ESP_FAIL;
+
+    //上报版本号
+    ret = OneNet_ota_upload_version();
+    if(ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "上报版本号失败 !");
+        goto delete_ota_task;
+    }
+
+    // 检测升级任务
+    ret = OneNet_ota_check_task();
+    if(ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "检测升级任务失败 !");
+        goto delete_ota_task;
+    }
+
+    // 上报任务升级状态，10%
+    ret = OneNet_ota_upload_state(10);
+    if(ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "上报升级状态失败 !");
+        goto delete_ota_task;
+    }
+
+    //进行http下载
+    ret = OneNet_ota_download(task_id);
+    if(ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "下载更新失败 !");
+        goto delete_ota_task;
+    }
+
+    // 上报进度100%
+    ret = OneNet_ota_upload_state(100); 
+    if(ret != ESP_OK)
+    {
+        ESP_LOGI(TAG, "上报升级状态失败 !");
+        goto delete_ota_task;
+    }
+
+    // 重启
+    esp_restart();
+
+delete_ota_task:
+    ota_is_running = false;
+    vTaskDelete(NULL);
+}
+
+TaskHandle_t OTA_Task_handle = NULL;
+void OneNet_ota_start(void)
+{
+    if(ota_is_running == true)
+    {
+        return;
+    }
+    ESP_LOGI(TAG, "开始OTA升级");
+    xTaskCreatePinnedToCore(OneNet_ota_Task, "OneNet_OTA_Task", 8192, NULL, 2, &OTA_Task_handle, 1);    
+    
+    if(OTA_Task_handle != NULL)
+    {
+        ESP_LOGI(TAG, "OTA任务创建成功！");
+    }
+    
 }
