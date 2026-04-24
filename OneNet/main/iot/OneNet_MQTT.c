@@ -83,7 +83,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
             cJSON_Delete(property_js);
         }
         //判断下行数据主题,是否包含OTA通知   ota/inform
-        else if(strstr(event->topic, "ota/inform"))
+        if(strstr(event->topic, "ota/inform") != NULL)
         {
             ESP_LOGI(TAG, "收到OTA通知");
             //生成CJSO对象
