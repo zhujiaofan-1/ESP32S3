@@ -2,5 +2,8 @@
 # CMakeLists in this exact order for cmake to work correctly
 cmake_minimum_required(VERSION 3.16)
 
+set(PROJECT_VER "1.0.0")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
-project(sample_project)
+project(OneNet)
+
+spiffs_create_partition_image(html html FLASH_IN_PROJECT)

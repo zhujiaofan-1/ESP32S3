@@ -12,7 +12,7 @@
   "clangd.arguments": [
     "--background-index",
     "--query-driver=**",
-    "--compile-commands-dir=f:\\ESP32_S3\\sample_project\\build"
+    "--compile-commands-dir=f:\\ESP32_S3\\OneNet\\build"
   ],
   "idf.flashType": "UART"
 }

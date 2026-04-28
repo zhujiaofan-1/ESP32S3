@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备配网</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-hover: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: var(--text);
+        }
+
+        .container {
+            background: var(--surface);
+            border-radius: 24px;
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 480px;
+            overflow: hidden;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+            padding: 40px 30px 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            opacity: 0.3;
+            animation: drift 20s linear infinite;
+        }
+
+        @keyframes drift {
+            from { transform: translate(0, 0); }
+            to { transform: translate(50px, 50px); }
+        }
+
+        .wifi-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 16px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.3);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header p {
+            opacity: 0.9;
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .scan-section {
+            margin-bottom: 24px;
+        }
+
+        .btn-scan {
+            width: 100%;
+            padding: 14px 24px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(59, 130, 246, 0.39);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-scan:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.23);
+        }
+
+        .btn-scan:active {
+            transform: translateY(0);
+        }
+
+        .btn-scan:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-scan .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.6);
+            transform: scale(0);
+            animation: ripple 0.6s ease-out;
+            pointer-events: none;
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        .wifi-list-container {
+            margin-top: 16px;
+            background: var(--bg);
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            max-height: 0;
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .wifi-list-container.show {
+            max-height: 300px;
+            opacity: 1;
+            margin-top: 16px;
+        }
+
+        .wifi-list-header {
+            padding: 16px 20px 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .wifi-list {
+            max-height: 240px;
+            overflow-y: auto;
+            padding: 0 8px 8px;
+        }
+
+        .wifi-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .wifi-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .wifi-list::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .wifi-item {
+            padding: 12px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+            margin-bottom: 4px;
+            background: white;
+            border: 1px solid transparent;
+        }
+
+        .wifi-item:hover {
+            background: white;
+            border-color: var(--primary-light);
+            box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+            transform: translateX(4px);
+        }
+
+        .wifi-item:active {
+            transform: scale(0.98);
+        }
+
+        .wifi-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+
+        .wifi-icon-small {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            background: var(--primary-light);
+            color: var(--primary);
+            flex-shrink: 0;
+        }
+
+        .wifi-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .wifi-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .wifi-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+
+        .wifi-signal {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .signal-bars {
+            display: flex;
+            align-items: flex-end;
+            gap: 2px;
+            height: 16px;
+        }
+
+        .signal-bar {
+            width: 3px;
+            background: currentColor;
+            border-radius: 1px;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
+        }
+
+        .signal-bar:nth-child(1) { height: 4px; }
+        .signal-bar:nth-child(2) { height: 7px; }
+        .signal-bar:nth-child(3) { height: 10px; }
+        .signal-bar:nth-child(4) { height: 13px; }
+
+        .signal-strong .signal-bar { opacity: 1; }
+        .signal-medium .signal-bar:nth-child(-n+3) { opacity: 1; }
+        .signal-weak .signal-bar:nth-child(-n+2) { opacity: 1; }
+
+        .signal-strong { color: var(--success); }
+        .signal-medium { color: var(--warning); }
+        .signal-weak { color: var(--error); }
+
+        .lock-icon {
+            font-size: 14px;
+            opacity: 0.6;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: var(--text-secondary);
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+
+        input[type="text"],
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 16px 14px 44px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            font-size: 15px;
+            font-family: inherit;
+            background: var(--bg);
+            transition: all 0.3s ease;
+            outline: none;
+            color: var(--text);
+        }
+
+        input[type="text"]:focus,
+        input[type="password"]:focus {
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 0 0 4px var(--primary-light);
+        }
+
+        input[type="text"]:focus + .input-icon,
+        input[type="password"]:focus + .input-icon {
+            color: var(--primary);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--text-secondary);
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .toggle-password:hover {
+            color: var(--text);
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.39);
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.23);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status {
+            margin-top: 20px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .status.show {
+            display: flex;
+        }
+
+        .status.success {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        .loading {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            gap: 16px;
+        }
+
+        .loading.show {
+            display: flex;
+        }
+
+        .spinner-wrapper {
+            position: relative;
+            width: 56px;
+            height: 56px;
+        }
+
+        .spinner {
+            width: 100%;
+            height: 100%;
+            border: 3px solid var(--primary-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .spinner-inner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70%;
+            height: 70%;
+            border: 3px solid transparent;
+            border-bottom-color: #8b5cf6;
+            border-radius: 50%;
+            animation: spin 1.2s linear infinite reverse;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-size: 15px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 24px 0;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            padding: 0 16px;
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 0;
+                background: var(--surface);
+            }
+            .container {
+                border-radius: 0;
+                box-shadow: none;
+                max-width: 100%;
+                min-height: 100vh;
+            }
+            .header {
+                border-radius: 0 0 24px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="wifi-icon">📡</div>
+            <h1>设备网络配置</h1>
+            <p>将您的设备连接到 Wi-Fi 网络</p>
+        </div>
+
+        <div class="content">
+            <div class="scan-section">
+                <button id="scan-btn" class="btn-scan">
+                    <span>🔍</span>
+                    <span>扫描附近 Wi-Fi 网络</span>
+                </button>
+
+                <div id="wifi-list-container" class="wifi-list-container">
+                    <div class="wifi-list-header">可用网络</div>
+                    <div id="wifi-list" class="wifi-list"></div>
+                </div>
+            </div>
+
+            <div class="divider"><span>或手动输入</span></div>
+
+            <div class="form-group">
+                <label class="form-label" for="ssid">Wi-Fi 网络名称</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">📶</span>
+                    <input type="text" id="ssid" placeholder="请输入或选择 Wi-Fi 名称">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Wi-Fi 密码</label>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔐</span>
+                    <input type="password" id="password" placeholder="请输入 Wi-Fi 密码">
+                    <button type="button" class="toggle-password" id="toggle-password" title="显示/隐藏密码">
+                        👁️
+                    </button>
+                </div>
+            </div>
+
+            <button id="submit-btn" class="btn-submit">
+                <span>⚡</span>
+                <span>配置网络</span>
+            </button>
+
+            <div id="status" class="status"></div>
+
+            <div id="loading" class="loading">
+                <div class="spinner-wrapper">
+                    <div class="spinner"></div>
+                    <div class="spinner-inner"></div>
+                </div>
+                <p id="loading-text" class="loading-text">正在配置网络<span class="loading-dots"></span></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var gateway = `ws://${window.location.hostname}/ws`;
+        var websocket;
+        let scanTimeId;
+
+        window.addEventListener('load', onLoad);
+
+        function onLoad(event) {
+            initWebSocket();
+        }
+
+        function initWebSocket() {
+            console.log('Trying to open a WebSocket connection...');
+            websocket = new WebSocket(gateway);
+            websocket.onopen = onOpen;
+            websocket.onclose = onClose;
+            websocket.onmessage = onMessage;
+        }
+
+        function onOpen(event) {
+            console.log('Connection opened');
+        }
+
+        function onClose(event) {
+            console.log('Connection closed');
+            setTimeout(initWebSocket, 3000);
+        }
+
+        function onMessage(event) {
+            var state;
+            const data = JSON.parse(event.data);
+            console.log(event.data);
+            const wifiListContainer = document.getElementById('wifi-list-container');
+            const wifiList = document.getElementById('wifi-list');
+            const btn = document.getElementById('scan-btn');
+
+            clearTimeout(scanTimeId);
+            document.getElementById('scan-btn').innerHTML = '<span>🔄</span><span>重新扫描 Wi-Fi 网络</span>';
+            wifiListContainer.classList.add('show');
+
+            for (let i = 0; i < data.wifi_list.length; i++) {
+                console.log(`ssid: ${data.wifi_list[i].ssid}, rssi: ${data.wifi_list[i].rssi}, encrypted: ${data.wifi_list[i].encrypted}`);
+
+                const item = document.createElement('div');
+                item.className = 'wifi-item';
+
+                const signalClass = getSignalStrengthClass(data.wifi_list[i].rssi);
+                const bars = getSignalBars(signalClass);
+
+                item.innerHTML = `
+                    <div class="wifi-info">
+                        <div class="wifi-icon-small">📶</div>
+                        <div class="wifi-details">
+                            <div class="wifi-name">${escapeHtml(data.wifi_list[i].ssid)}</div>
+                            <div class="wifi-meta">${data.wifi_list[i].encrypted ? '🔒 安全' : '🌐 开放网络'}</div>
+                        </div>
+                    </div>
+                    <div class="wifi-signal ${signalClass}">
+                        <div class="signal-bars">${bars}</div>
+                        <span>${data.wifi_list[i].rssi}dBm</span>
+                    </div>
+                `;
+
+                item.addEventListener('click', () => {
+                    document.getElementById('ssid').value = data.wifi_list[i].ssid;
+                    document.getElementById('password').focus();
+                    // 视觉反馈
+                    item.style.background = 'var(--primary-light)';
+                    setTimeout(() => {
+                        item.style.background = '';
+                    }, 300);
+                });
+
+                wifiList.appendChild(item);
+            }
+
+            document.getElementById('loading').classList.remove('show');
+            btn.disabled = false;
+            showStatus('✅ 扫描完成', 'success');
+        }
+
+        // 扫描 Wi-Fi 网络
+        document.getElementById('scan-btn').addEventListener('click', function(e) {
+            const btn = this;
+            const wifiListContainer = document.getElementById('wifi-list-container');
+            const wifiList = document.getElementById('wifi-list');
+
+            // 涟漪效果
+            createRipple(e, btn);
+
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner" style="width: 20px; height: 20px; border-width: 2px; display: inline-block; vertical-align: middle; margin-right: 8px;"></span><span>正在扫描...</span>';
+            document.getElementById('loading-text').innerHTML = '正在扫描 Wi-Fi 网络<span class="loading-dots"></span>';
+            document.getElementById('loading').classList.add('show');
+            wifiList.innerHTML = '';
+            wifiListContainer.classList.remove('show');
+
+            scanNetwork('start');
+
+            scanTimeId = setTimeout(() => {
+                btn.innerHTML = '<span>🔄</span><span>重新扫描 Wi-Fi 网络</span>';
+                btn.disabled = false;
+                document.getElementById('loading').classList.remove('show');
+                showStatus('❌ 扫描 Wi-Fi 网络失败，请稍后重试', 'error');
+            }, 20 * 1000);
+        });
+
+        // 提交网络配置
+        document.getElementById('submit-btn').addEventListener('click', function(e) {
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+
+            if (!ssid) {
+                showStatus('❌ 请输入 Wi-Fi 网络名称', 'error');
+                document.getElementById('ssid').focus();
+                return;
+            }
+
+            createRipple(e, this);
+
+            document.getElementById('loading-text').innerHTML = '正在配置网络<span class="loading-dots"></span>';
+            document.getElementById('loading').classList.add('show');
+            this.disabled = true;
+
+            configureNetwork(ssid, password);
+        });
+
+        // 密码显示/隐藏切换
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+
+        // 配置网络
+        function configureNetwork(ssid, password) {
+            const manualJson = '{"ssid":"' + ssid + '","password":"' + password + '"}';
+            websocket.send(manualJson);
+            showStatus('✅ 开始配置网络！请留意设备信息...', 'success');
+        }
+
+        // 开始扫描
+        function scanNetwork(msg) {
+            const manualJson = '{"scan":"' + msg + '"}';
+            websocket.send(manualJson);
+            showStatus('🔍 开始扫描...', 'success');
+        }
+
+        // 显示状态信息
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('status');
+            const icon = type === 'success' ? '✓' : '✕';
+            statusElement.innerHTML = `<span class="status-icon">${icon}</span><span>${message}</span>`;
+            statusElement.className = 'status show ' + type;
+        }
+
+        // 获取信号强度 CSS 类
+        function getSignalStrengthClass(rssi) {
+            if (rssi >= -50) return 'signal-strong';
+            if (rssi >= -70) return 'signal-medium';
+            return 'signal-weak';
+        }
+
+        // 生成信号条
+        function getSignalBars(signalClass) {
+            let activeBars = 1;
+            if (signalClass === 'signal-medium') activeBars = 3;
+            if (signalClass === 'signal-strong') activeBars = 4;
+
+            let html = '';
+            for (let i = 1; i <= 4; i++) {
+                html += `<div class="signal-bar" style="opacity: ${i <= activeBars ? 1 : 0.2}"></div>`;
+            }
+            return html;
+        }
+
+        // HTML 转义防止 XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // 创建涟漪效果
+        function createRipple(e, button) {
+            const ripple = document.createElement('span');
+            ripple.classList.add('ripple');
+            const rect = button.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = e.clientX - rect.left - size / 2 + 'px';
+            ripple.style.top = e.clientY - rect.top - size / 2 + 'px';
+            button.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        }
+    </script>
+</body>
+</html>
