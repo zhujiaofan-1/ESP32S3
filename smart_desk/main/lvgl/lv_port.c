@@ -12,13 +12,17 @@
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_check.h"
+#include "esp_log_config.h"
 #include "freertos/projdefs.h"
+#include "ft6336u_driver.h"
+#include "indev/lv_indev.h"
 #include "soc/gpio_num.h"
 #include <string.h>
 #include "esp_lvgl_port.h"
 #include "XL9555.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "ft6336u_driver.h"
 
 
 #define TAG         "LV_port"
@@ -33,7 +37,11 @@
 static esp_lcd_panel_io_handle_t io_handle = NULL;
 static esp_lcd_panel_handle_t lcd_panel = NULL;
 static lv_display_t* lvgl_disp = NULL;
+static lv_indev_t* touch_indev = NULL;  // 触摸输入设备句柄
 
+/**
+ * @brief 初始化 LCD 硬件（Intel 8080 总线和 ST7789 控制器）
+ */
 void lv_display_hard_Init(void)
 {
     ESP_LOGI(TAG, "Initialize Intel 8080 bus");
@@ -94,6 +102,26 @@ void lv_display_hard_Init(void)
     esp_lcd_panel_disp_on_off(lcd_panel, true);
 }
 
+/**
+ * @brief LVGL 触摸输入设备读取回调函数
+ * @param indev LVGL 输入设备句柄
+ * @param data 输入数据结构体指针
+ */
+void indev_read(lv_indev_t * indev, lv_indev_data_t * data)
+{
+    int16_t x = 0, y = 0;
+    int state = 0;
+    ft6336u_read(&x, &y, &state);
+    // 需要交换坐标系，因为从竖屏变成横屏了
+    data->point.x = (LCD_WIDTH - y) - 1;
+    data->point.y = x;
+    data->state = state;
+}
+
+/**
+ * @brief 初始化 LVGL 端口并注册显示和触摸设备
+ * @return ESP_OK 成功，其他失败
+ */
 esp_err_t lv_port_Init(void)
 {   
     // 打开背光
@@ -105,6 +133,8 @@ esp_err_t lv_port_Init(void)
 
     // 初始化 LCD 硬件
     lv_display_hard_Init();
+    //初始化触摸屏
+    ft6336_driver(GPIO_NUM_13, GPIO_NUM_12);
 
     // 配置并初始化 LVGL 端口
      const lvgl_port_cfg_t lvgl_cfg = {
@@ -121,7 +151,7 @@ esp_err_t lv_port_Init(void)
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = io_handle,
         .panel_handle = lcd_panel,
-        .buffer_size = LCD_WIDTH * 20,  // 内存区域，lvgl在这个内存绘制（320*20=6400像素=12800字节）
+        .buffer_size = LCD_WIDTH * 80,  // 内存区域，lvgl在这个内存绘制（320*80=25600像素=51200字节）
         .double_buffer = 0,      // 双缓存
         .hres = LCD_WIDTH,
         .vres = LCD_HEIGHT,
@@ -141,5 +171,38 @@ esp_err_t lv_port_Init(void)
     // 添加显示设备
     lvgl_disp = lvgl_port_add_disp(&disp_cfg);
 
+
+    //触摸
+    /**
+     * 为什么需要加锁？
+     * 
+     * 1. LVGL 多任务安全机制：
+     *    - LVGL 内部使用独立的 FreeRTOS 任务处理渲染和事件
+     *    - 多个任务可能同时访问 LVGL 对象树（widget 链表、显示缓冲区等）
+     *    - 不加锁会导致竞态条件：画面撕裂、内存崩溃、数据损坏
+     * 
+     * 2. 临界区保护：
+     *    - `lv_indev_create()` 修改全局 LVGL 对象链表
+     *    - `lv_indev_set_type()` 修改设备状态
+     *    - 这些操作不是原子的，必须在一次事务中完成
+     * 
+     * 3. lvgl_port_lock(0) 参数含义：
+     *    - 参数=0：阻塞模式，一直等待直到获取锁
+     *    - 参数>0：超时时间（毫秒）
+     *    - 使用互斥量（Mutex）实现，不是禁用中断
+     * 
+     * 4. 不加锁的后果示例：
+     *    - 渲染任务正在遍历 widget 树时，这里同时创建新对象 → 野指针崩溃
+     *    - 输入设备正在刷新时，触摸中断同时修改 → 触摸坐标错乱
+     */
+    lvgl_port_lock(0);
+    //创建输入设备 
+    touch_indev = lv_indev_create();
+
+    lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
+
+    //设置设备获取数据的接口
+    lv_indev_set_read_cb(touch_indev, indev_read);
+    lvgl_port_unlock();
     return ESP_OK;
 }

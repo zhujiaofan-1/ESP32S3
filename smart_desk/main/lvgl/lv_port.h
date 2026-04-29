@@ -13,7 +13,7 @@
 void lv_display_hard_Init(void);
 
 /**
- * @brief 初始化 LVGL 端口并注册显示设备
+ * @brief 初始化 LVGL 端口并注册显示和触摸设备
  * @return ESP_OK 成功，其他失败
  */
 esp_err_t lv_port_Init(void);

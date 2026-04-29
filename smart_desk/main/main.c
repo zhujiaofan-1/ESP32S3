@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "iot/AP_WIFI.h" 
 #include "iot/OneNet_MQTT.h"
+#include "lvgl/ft6336u_driver.h"
 #include "nvs_flash.h"
 #include "OneNet_MQTT.h"
 #include "portmacro.h"
@@ -51,6 +52,19 @@ void XL9555_Input_callback(uint16_t Pin, int Level)
         XL9555_Button_Level |= Pin;
     }else{
         XL9555_Button_Level &= ~Pin;
+    }
+
+
+    //检测ft6336中断
+    if(Pin == IO1_1)
+    {
+        if(!Level)      //低电平则产生中断
+        {
+            ft6336u_int_info(true);
+            ESP_LOGI(TAG, "触摸中断");
+        }else{
+            ft6336u_int_info(false);
+        }
     }
 }
 
