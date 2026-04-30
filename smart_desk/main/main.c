@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -20,6 +21,10 @@
 #include "lv_demos.h"
 #include "esp_lvgl_port.h"
 #include "esp_heap_caps.h"
+#include "lvgl.h"  // 添加 LVGL 核心头文件
+#include "gui_guider.h"
+#include "custom.h"
+
 
 #define TAG     "main"
 
@@ -32,7 +37,7 @@ static EventGroupHandle_t main_ev = NULL;
 //通过在xl9555中改变这个变量的值，就能体现出按键的高低电平
 static volatile uint16_t XL9555_Button_Level = 0xffff;
 
-
+lv_ui guider_ui;
 
 
 /**
@@ -169,6 +174,15 @@ void wifi_stat_callback(WIFI_STATE state)
     }
 }
 
+
+static lv_obj_t* scr;
+static lv_obj_t* button1;
+static lv_obj_t* label1;  
+static lv_obj_t* label2;
+
+
+
+
 /**
  * @brief 应用程序主函数
  * 
@@ -220,9 +234,13 @@ void app_main(void)
 
     //初始化屏幕
     lv_port_Init();
-    lvgl_port_lock(0);
-    lv_demo_widgets();
+    lvgl_port_lock(0);              //代码不在 LVGL 自己的刷新任务里,在别的任务操作则需要加锁
+    // lv_demo_widgets();
+    setup_ui(&guider_ui);       //加载预设ui
+    custom_init(&guider_ui);    //自定义需求初始化
     lvgl_port_unlock();
+
+
     EventBits_t wifi_ev_bit;
     while(1)
     {
