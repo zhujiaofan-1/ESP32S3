@@ -4,6 +4,8 @@
  */
 
 #include "lv_port.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "esp_lcd_types.h"
 #include "esp_log.h"
 #include "esp_lcd_panel_io.h"
@@ -12,17 +14,17 @@
 #include "driver/gpio.h"
 #include "esp_err.h"
 #include "esp_check.h"
-#include "esp_log_config.h"
-#include "freertos/projdefs.h"
-#include "ft6336u_driver.h"
-#include "indev/lv_indev.h"
-#include "soc/gpio_num.h"
-#include <string.h>
 #include "esp_lvgl_port.h"
-#include "XL9555.h"
+#include "freertos/projdefs.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "soc/gpio_num.h"
+
+/*============================ 项目头文件 ============================*/
 #include "ft6336u_driver.h"
+#include "XL9555.h"
+
+#include <string.h>
 
 
 #define TAG         "LV_port"
@@ -151,7 +153,7 @@ esp_err_t lv_port_Init(void)
     const lvgl_port_display_cfg_t disp_cfg = {
         .io_handle = io_handle,
         .panel_handle = lcd_panel,
-        .buffer_size = LCD_WIDTH * 80,  // 内存区域，lvgl在这个内存绘制（320*80=25600像素=51200字节）
+        .buffer_size = LCD_WIDTH * 120,  // 内存区域
         .double_buffer = 0,      // 双缓存
         .hres = LCD_WIDTH,
         .vres = LCD_HEIGHT,
@@ -165,6 +167,7 @@ esp_err_t lv_port_Init(void)
         },
         .flags = {
             .buff_dma = true,
+            .buff_spiram = true,        //使用PSRAM
 
         }
     };

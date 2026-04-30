@@ -1,3 +1,8 @@
+/**
+ * @file button.h
+ * @brief 按键驱动管理接口
+ */
+
 #ifndef _BUTTON_H
 #define _BUTTON_H
 

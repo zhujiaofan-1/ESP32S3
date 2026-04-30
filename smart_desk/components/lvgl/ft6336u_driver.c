@@ -4,10 +4,12 @@
  */
 
 #include "ft6336u_driver.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
+#include "driver/i2c_master.h"
 #include "driver/i2c_types.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "driver/i2c_master.h"
 #include "hal/i2c_types.h"
 #include "soc/clk_tree_defs.h"
 

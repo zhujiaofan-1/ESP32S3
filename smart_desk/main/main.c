@@ -1,29 +1,45 @@
+/**
+ * @file main.c
+ * @brief 智能桌面主程序入口
+ */
 
+/*============================ 系统头文件 ============================*/
 #include <stdio.h>
 #include <string.h>
+
+/*============================ FreeRTOS 头文件 ============================*/
 #include "freertos/FreeRTOS.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"
-#include "button.h"
-#include "XL9555.h"
-#include "esp_log.h"
-#include "iot/AP_WIFI.h" 
-#include "iot/OneNet_MQTT.h"
-#include "lvgl/ft6336u_driver.h"
-#include "nvs_flash.h"
-#include "OneNet_MQTT.h"
 #include "portmacro.h"
-#include "OneNet_dm.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
+#include "esp_log.h"
+#include "esp_heap_caps.h"
+#include "nvs_flash.h"
 #include "soc/gpio_num.h"
-#include "Audio.h"
-#include "lvgl/lv_port.h"
+
+/*============================ LVGL 头文件 ============================*/
+#include "lvgl.h"
 #include "lv_demos.h"
 #include "esp_lvgl_port.h"
-#include "esp_heap_caps.h"
-#include "lvgl.h"  // 添加 LVGL 核心头文件
 #include "gui_guider.h"
 #include "custom.h"
+
+/*============================ 项目模块头文件 ============================*/
+#include "button.h"
+#include "XL9555.h"
+#include "Audio.h"
+#include "lvgl/ft6336u_driver.h"
+#include "lvgl/lv_port.h"
+#include "iot/AP_WIFI.h"
+#include "iot/OneNet_MQTT.h"
+#include "OneNet_dm.h"
+#include "my_sntp.h"
+#include "esp_sntp.h"
+#include <time.h>
+
 
 
 #define TAG     "main"
@@ -59,7 +75,6 @@ void XL9555_Input_callback(uint16_t Pin, int Level)
         XL9555_Button_Level &= ~Pin;
     }
 
-
     //检测ft6336中断
     if(Pin == IO1_1)
     {
@@ -88,11 +103,7 @@ void btn_long_press_callback(int gpio)
         ESP_LOGI(TAG," 进入AP配网模式");
         AP_WIFI_apcfg();
     }
-    
 }
-
-
-
 
 /**
  * @brief 按键短按回调函数
@@ -122,7 +133,7 @@ void btn_short_press_callback(int gpio)
 int get_gpio_level_callback(int gpio)
 {
     // 与特定的引脚相与不为0，则return  1
-    return XL9555_Button_Level&gpio?1:0;
+    return XL9555_Button_Level & gpio ? 1 : 0;
 }
 
 /**
@@ -134,8 +145,6 @@ int get_gpio_level_callback(int gpio)
 //button初始化
 void button_Init(void)
 {
-    
-    
     //注册按键
     button_config_t btn_cfg =
     {
@@ -174,13 +183,15 @@ void wifi_stat_callback(WIFI_STATE state)
     }
 }
 
-
-static lv_obj_t* scr;
-static lv_obj_t* button1;
-static lv_obj_t* label1;  
-static lv_obj_t* label2;
-
-
+//对时回调函数
+void sntp_finish_callback (struct timeval *tv)
+{
+    //分解时间
+    struct tm t;
+    localtime_r(&tv->tv_sec, &t);
+    //设置初始时间
+    set_home_time(&guider_ui, t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_wday, t.tm_hour, t.tm_min, t.tm_sec);
+}
 
 
 /**
@@ -219,7 +230,6 @@ void app_main(void)
 
     XL9555_IO_Cofig(0xffff & (~(IO0_0 | IO1_3 | IO1_2)));    //设置为输入模式,IO_0需要为输出
 
-
     // 初始化按键
     button_Init();
 
@@ -240,12 +250,15 @@ void app_main(void)
     custom_init(&guider_ui);    //自定义需求初始化
     lvgl_port_unlock();
 
-
     EventBits_t wifi_ev_bit;
     while(1)
     {
+        time_t now = time(NULL);
+        ESP_LOGI("SNTP", "Time_count:%lld, sync_status:%d", (long long)now, esp_sntp_get_sync_status());
+        vTaskDelay(pdMS_TO_TICKS(1000));
+
         //等待WIFI连接事件或录音触发事件
-        wifi_ev_bit = xEventGroupWaitBits(main_ev, WIFI_CONNECT_BIT | RECORD_TRIGGER_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+        wifi_ev_bit = xEventGroupWaitBits(main_ev, WIFI_CONNECT_BIT | RECORD_TRIGGER_BIT, pdFALSE, pdFALSE, 0);
 
         //录音触发
         if(wifi_ev_bit & RECORD_TRIGGER_BIT)
@@ -265,9 +278,11 @@ void app_main(void)
         if(wifi_ev_bit & WIFI_CONNECT_BIT)
         {
             xEventGroupClearBits(main_ev, WIFI_CONNECT_BIT);
+
+            // WiFi已连接，初始化SNTP对时
+            my_sntp_Init(sntp_finish_callback);
+
             OneNet_Start();
         }
     }
-    
-
 }

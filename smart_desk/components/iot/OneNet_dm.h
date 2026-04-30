@@ -1,3 +1,8 @@
+/**
+ * @file OneNet_dm.h
+ * @brief OneNet设备物模型接口
+ */
+
 #ifndef _ONENET_DM_H
 #define _ONENET_DM_H
 

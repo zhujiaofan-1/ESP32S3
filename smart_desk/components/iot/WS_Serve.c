@@ -1,10 +1,12 @@
 #include "WS_Serve.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "esp_err.h"
 #include "esp_log.h"
 #include "esp_http_server.h"
 #include "http_parser.h"
+
 #include <string.h>
-#include "esp_log.h"
 
 
 #define TAG     "WS_server"
@@ -220,7 +222,7 @@ esp_err_t _Web_WS_Send(uint8_t* Data, int len)
 {
     // 帧数据
     httpd_ws_frame_t Packet;
-    memset(&Packet, 0, sizeof(http_server_handle));
+    memset(&Packet, 0, sizeof(Packet));
     Packet.payload = Data;              //填充数据
     Packet.len = len;                   
     Packet.type = HTTPD_WS_TYPE_TEXT;   //类型：文本

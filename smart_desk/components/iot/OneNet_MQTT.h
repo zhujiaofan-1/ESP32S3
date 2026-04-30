@@ -1,3 +1,8 @@
+/**
+ * @file OneNet_MQTT.h
+ * @brief OneNet MQTT通信接口
+ */
+
 #ifndef _ONENET_MQTT_H
 #define _ONENET_MQTT_H
 

@@ -1,0 +1,31 @@
+file(GLOB_RECURSE SOURCES ./*.c)
+
+idf_component_register(
+    SRCS
+        ${SOURCES}
+    INCLUDE_DIRS
+        "."
+        "iot"
+        "lvgl"
+        "ui/custom"
+        "ui/generated"
+        "ui/generated/guider_customer_fonts"
+    REQUIRES
+        esp_lcd
+        driver
+        nvs_flash
+        esp_http_client
+        esp_http_server
+        mqtt
+        json
+        esp_wifi
+        esp_netif
+        esp_event
+        esp_timer
+        spiffs
+        mbedtls
+        esp_https_ota
+        app_update
+        lvgl
+        esp_lvgl_port
+)

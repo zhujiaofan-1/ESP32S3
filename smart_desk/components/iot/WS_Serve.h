@@ -1,3 +1,8 @@
+/**
+ * @file WS_Serve.h
+ * @brief WebSocket服务器接口
+ */
+
 #ifndef _WS_SERVE_H
 #define _WS_SERVE_H
 

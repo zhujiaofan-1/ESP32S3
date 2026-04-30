@@ -1,15 +1,19 @@
 #include "OneNet_MQTT.h"
-#include "OneNet_OTA.h"
-#include "cJSON.h"
-#include "esp_event_base.h"
-#include "onenet_token.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "mqtt_client.h"
 #include "esp_log.h"
+#include "esp_event_base.h"
+
+/*============================ 项目头文件 ============================*/
+#include "OneNet_dm.h"
+#include "OneNet_OTA.h"
+#include "onenet_token.h"
+#include "cJSON.h"
+
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include "OneNet_dm.h"
-#include "OneNet_OTA.h"
 
 
 #define TAG     "OneNet"
@@ -37,7 +41,7 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
         OneNet_post_property_data(mqtt_handle, data);                   //上报所有数据
 
-        cJSON_free(property_js);
+        cJSON_Delete(property_js);
         cJSON_free(data);
       
         
@@ -64,38 +68,32 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
         break;
 
-    case MQTT_EVENT_DATA:           //下行数据事件
+    case MQTT_EVENT_DATA:
         ESP_LOGI(TAG, "MQTT_EVENT_DATA");
         printf("TOPIC=%.*s\r\n", event->topic_len, event->topic);
         printf("DATA=%.*s\r\n", event->data_len, event->data);
 
-        //判断下行数据主题,是否包含设备属性设置   property/set  
         if(strstr(event->topic, "property/set") != 0)
         {
-            //生成CJSO对象
             cJSON* property_js = cJSON_Parse(event->data);
-            
-            OneNet_property_handle(property_js);
-            //取出下发id，用于回应数据
-            cJSON* id_js = cJSON_GetObjectItem(property_js, "id");
-            OneNet_property_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
-
-            cJSON_Delete(property_js);
+            if(property_js)
+            {
+                OneNet_property_handle(property_js);
+                cJSON* id_js = cJSON_GetObjectItem(property_js, "id");
+                OneNet_property_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
+                cJSON_Delete(property_js);
+            }
         }
-        //判断下行数据主题,是否包含OTA通知   ota/inform
         if(strstr(event->topic, "ota/inform") != NULL)
         {
             ESP_LOGI(TAG, "收到OTA通知");
-            //生成CJSO对象
             cJSON* ota_js = cJSON_Parse(event->data);
-            
-            //取出下发id，用于回应数据
-            cJSON* id_js = cJSON_GetObjectItem(ota_js, "id");
-            OneNet_ota_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
-
-            cJSON_Delete(ota_js);
-
-            //开始OTA升级流程
+            if(ota_js)
+            {
+                cJSON* id_js = cJSON_GetObjectItem(ota_js, "id");
+                OneNet_ota_ack(mqtt_handle, cJSON_GetStringValue(id_js), 200, "success");
+                cJSON_Delete(ota_js);
+            }
             OneNet_ota_start();
         }
 

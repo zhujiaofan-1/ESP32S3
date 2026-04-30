@@ -1,18 +1,23 @@
 #include "OneNet_OTA.h"
-#include "OneNet_MQTT.h"
-#include "cJSON.h"
-#include "esp_app_desc.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "esp_err.h"
+#include "esp_log.h"
+#include "esp_app_desc.h"
 #include "esp_flash_partitions.h"
 #include "esp_ota_ops.h"
 #include "esp_partition.h"
+#include "esp_http_client.h"
+#include "esp_https_ota.h"
+#include "freertos/idf_additions.h"
+
+/*============================ 项目头文件 ============================*/
+#include "OneNet_MQTT.h"
+#include "onenet_token.h"
+#include "cJSON.h"
+
 #include <stdio.h>
 #include <string.h>
-#include "esp_http_client.h"
-#include "esp_log.h"
-#include "freertos/idf_additions.h"
-#include "onenet_token.h"
-#include "esp_https_ota.h"
 
 #define TAG             "OneNet_OTA"
 #define TOKEN_VALID_TIMERSTAMP      1790855684

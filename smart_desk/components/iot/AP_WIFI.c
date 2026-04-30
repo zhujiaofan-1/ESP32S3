@@ -1,15 +1,20 @@
 #include "AP_WIFI.h"
-#include "WIFI_manager.h"
-#include "WS_Serve.h"
-#include "cJSON.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "esp_log.h"
 #include "esp_spiffs.h"
-#include <string.h>
-#include <sys/stat.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/idf_additions.h"
 #include "freertos/projdefs.h"
 #include "freertos/task.h"
+
+/*============================ 项目头文件 ============================*/
+#include "WIFI_manager.h"
+#include "WS_Serve.h"
+#include "cJSON.h"
+
+#include <string.h>
+#include <sys/stat.h>
 
 #define TAG             "AP_WIFI"
 
@@ -92,17 +97,20 @@ static void AP_WIFI_Task(void* param)
     EventBits_t ev;
     while (1)
     {
-        //等待事件通知
         ev = xEventGroupWaitBits(APcfg_ev, APCFG_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10*1000));
         if(ev & APCFG_BIT)
         {
-            //停止服务器
             _Web_WS_Stop();
-            //发起连接
+
+            if(html_code)
+            {
+                free(html_code);
+                html_code = NULL;
+            }
+
             WIFI_manager_connect((char*)Current_ssid,(char*)Current_password);
         }
     }
-    
 }
 
 

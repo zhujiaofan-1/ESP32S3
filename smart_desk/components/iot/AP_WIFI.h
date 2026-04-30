@@ -1,3 +1,8 @@
+/**
+ * @file AP_WIFI.h
+ * @brief AP配网模块接口
+ */
+
 #ifndef _AP_WIFI_H
 #define _AP_WIFI_H
 

@@ -1,27 +1,54 @@
 #include "OneNet_dm.h"
-#include "OneNet_MQTT.h"
-#include "cJSON.h"
+
+/*============================ ESP-IDF 头文件 ============================*/
 #include "esp_err.h"
 #include "esp_log.h"
-#include "hal/ledc_types.h"
-#include "led_ws2812.h"
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 #include "mqtt_client.h"
 #include "soc/clk_tree_defs.h"
 #include "soc/gpio_num.h"
+#include "hal/ledc_types.h"
+
+/*============================ 项目头文件 ============================*/
+#include "OneNet_MQTT.h"
+#include "led_ws2812.h"
+#include "cJSON.h"
+
 #include <string.h>
-#include "driver/ledc.h"
 
 
 //ws2812操作句柄
 static ws2812_strip_handle_t    ws2812_handle = NULL;
 
 
-static int LED_brightness = 0;          //LED亮度
-static bool LED_Status = false;              //LED开关状态
+static int LED_brightness = 0;
+static bool LED_Status = false;
 static int ws2812_red = 0;
 static int ws2812_green = 0;
 static int ws2812_blue = 0;
+
+static void build_topic(char* buf, size_t len, const char* suffix)
+{
+    snprintf(buf, len, "$sys/%s/%s/%s", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME, suffix);
+}
+
+static void send_ack(esp_mqtt_client_handle_t mqtt_handle, const char* topic_suffix, const char* id, int error_code, const char* msg)
+{
+    char topic[128];
+    build_topic(topic, sizeof(topic), topic_suffix);
+
+    cJSON* replay_js = cJSON_CreateObject();
+    cJSON_AddStringToObject(replay_js, "id", id);
+    cJSON_AddNumberToObject(replay_js, "code", error_code);
+    cJSON_AddStringToObject(replay_js, "msg", msg);
+
+    char* data = cJSON_PrintUnformatted(replay_js);
+    esp_mqtt_client_publish(mqtt_handle, topic, data, strlen(data), 1, 0);
+
+    cJSON_free(data);
+    cJSON_Delete(replay_js);
+}
 
 
 /**
@@ -228,20 +255,7 @@ cJSON* OneNet_property_upload(void)
  */
 void OneNet_property_ack(esp_mqtt_client_handle_t mqtt_handle, const char* id, int error_code, const char* msg)
 {
-    char topic[128];
-    snprintf(topic, 128, "$sys/%s/%s/thing/property/set_reply", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
-
-    cJSON* replay_js = cJSON_CreateObject();
-    cJSON_AddStringToObject(replay_js, "id", id);
-    cJSON_AddNumberToObject(replay_js, "code", error_code);
-    cJSON_AddStringToObject(replay_js, "msg", msg);
-
-    //设置格式
-    char* data = cJSON_PrintUnformatted(replay_js);
-    //推送消息
-    esp_mqtt_client_publish(mqtt_handle, topic, data, strlen(data), 1, 0);
-
-    cJSON_free(replay_js);
+    send_ack(mqtt_handle, "thing/property/set_reply", id, error_code, msg);
 }
 
 
@@ -259,20 +273,7 @@ void OneNet_property_ack(esp_mqtt_client_handle_t mqtt_handle, const char* id, i
  */
 void OneNet_ota_ack(esp_mqtt_client_handle_t mqtt_handle, const char* id, int error_code, const char* msg)
 {
-    char topic[128];
-    snprintf(topic, 128, "$sys/%s/%s/ota/inform_reply", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
-
-    cJSON* replay_js = cJSON_CreateObject();
-    cJSON_AddStringToObject(replay_js, "id", id);
-    cJSON_AddNumberToObject(replay_js, "code", error_code);
-    cJSON_AddStringToObject(replay_js, "msg", msg);
-
-    //设置格式
-    char* data = cJSON_PrintUnformatted(replay_js);
-    //推送消息
-    esp_mqtt_client_publish(mqtt_handle, topic, data, strlen(data), 1, 0);
-
-    cJSON_free(replay_js);
+    send_ack(mqtt_handle, "ota/inform_reply", id, error_code, msg);
 }
 
 
@@ -289,16 +290,13 @@ void OneNet_subscribe(esp_mqtt_client_handle_t mqtt_handle)
 {
     char topic[128];
 
-    //订阅上报属性回复主题
-    snprintf(topic, 128, "$sys/%s/%s/thing/property/post/reply", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
+    build_topic(topic, sizeof(topic), "thing/property/post/reply");
     esp_mqtt_client_subscribe_single(mqtt_handle, topic, 1);
 
-    //订阅设置主题
-    snprintf(topic, 128, "$sys/%s/%s/thing/property/set", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
+    build_topic(topic, sizeof(topic), "thing/property/set");
     esp_mqtt_client_subscribe_single(mqtt_handle, topic, 1);
 
-    //订阅OTA升级通知主题
-    snprintf(topic, 128, "$sys/%s/%s/ota/inform", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
+    build_topic(topic, sizeof(topic), "ota/inform");
     esp_mqtt_client_subscribe_single(mqtt_handle, topic, 1);
 }
 
@@ -316,7 +314,7 @@ void OneNet_subscribe(esp_mqtt_client_handle_t mqtt_handle)
 esp_err_t OneNet_post_property_data(esp_mqtt_client_handle_t mqtt_handle, const char* data)
 {
     char topic[128];
-    snprintf(topic, 128, "$sys/%s/%s/thing/property/post", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME);
+    build_topic(topic, sizeof(topic), "thing/property/post");
     esp_mqtt_client_subscribe_single(mqtt_handle, topic, 1);
 
     esp_err_t ret = esp_mqtt_client_publish(mqtt_handle, topic, data, strlen(data), 1, 0);
@@ -327,5 +325,4 @@ esp_err_t OneNet_post_property_data(esp_mqtt_client_handle_t mqtt_handle, const 
     }
 
     return ret;
-
 }

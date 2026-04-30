@@ -7,36 +7,19 @@
 * terms, then you may not retain, install, activate or otherwise use the software.
 */
 
+#ifndef __CUSTOM_H_
+#define __CUSTOM_H_
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-/*********************
- *      INCLUDES
- *********************/
-#include <stdio.h>
-#include "lvgl.h"
-#include "custom.h"
+#include "gui_guider.h"
 
-/*********************
- *      DEFINES
- *********************/
+void set_home_time(lv_ui* ui, int year, int month, int day, int w_day, int hour, int min, int sec);
+void custom_init(lv_ui *ui);
 
-/**********************
- *      TYPEDEFS
- **********************/
 
-/**********************
- *  STATIC PROTOTYPES
- **********************/
-
-/**********************
- *  STATIC VARIABLES
- **********************/
-
-/**
- * Create a demo application
- */
-
-void custom_init(lv_ui *ui)
-{
-    /* Add your codes here */
+#ifdef __cplusplus
 }
-
+#endif
+#endif /* EVENT_CB_H_ */

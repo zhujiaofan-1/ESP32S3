@@ -201,13 +201,4 @@ static void button_handle(void* arg)
                 break;
         }
     }
-    // TODO: 实现按键扫描逻辑
-    // 1. 遍历 button_head 链表
-    // 2. 获取当前GPIO电平
-    // 3. 状态机处理：
-    //    - RELEASE → 读取到 active_level → 跳转到 PRESS(消抖)
-    //    - PRESS → 持续 active_level → 跳转到 HOLD
-    //    - HOLD → 超过 long_press_time → 跳转到 LONG_PRESS_HOLD，触发长按回调
-    //    - PRESS/HOLD → 读取到 !active_level → 触发短按回调，跳转到 RELEASE
-    //    - LONG_PRESS_HOLD → 读取到 !active_level → 跳转到 RELEASE
 }

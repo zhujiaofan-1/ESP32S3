@@ -1,3 +1,8 @@
+/**
+ * @file OneNet_OTA.h
+ * @brief OneNet OTA升级接口
+ */
+
 #ifndef _ONENET_OTA_H
 #define _ONENET_OTA_H
 

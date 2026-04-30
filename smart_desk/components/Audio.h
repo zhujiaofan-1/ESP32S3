@@ -1,8 +1,16 @@
+/**
+ * @file Audio.h
+ * @brief ESP32-S3 音频驱动接口
+ * 
+ * 提供 I2S 扬声器输出和 PDM 麦克风输入功能声明。
+ */
+
 #ifndef _AUDIO_H
 #define _AUDIO_H
 
 #include "driver/gpio.h"
 #include "soc/gpio_num.h"
+#include <stdint.h>
 
 /**
  * @brief 初始化扬声器 I2S 接口
@@ -47,15 +55,35 @@ int Audio_read(int16_t* Data, int samples);
  * @brief 向扬声器写入音频数据
  * 
  * 将音频采样数据写入 I2S 扬声器接口进行播放。
+ * 
+ * @param Data 包含要播放音频采样数据的缓冲区指针
+ * @param samples 要写入的采样数量
+ * @return 实际写入的采样数量，出错时返回负值
  */
 //写入音频数据
 int Audio_write(const int16_t* Data, int samples);
 
-
+/**
+ * @brief 初始化音频 SPIFFS 文件系统
+ * 
+ * 挂载 SPIFFS 文件系统用于存储录音文件。
+ */
 void Audio_spiffs_Init(void);
 
+/**
+ * @brief 开始录音
+ * 
+ * 从 PDM 麦克风读取音频数据，进行音量放大后保存到文件。
+ * 
+ * @param rec_time 录音时长（秒）
+ */
 void Start_record(uint32_t rec_time);
 
+/**
+ * @brief 播放录音文件
+ * 
+ * 从录音文件读取音频数据并播放。
+ */
 void Play_Audio(void);
 
 #endif

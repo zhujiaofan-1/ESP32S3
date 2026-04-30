@@ -12,6 +12,8 @@
 #include "widgets_init.h"
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <stdio.h>
 
 
 __attribute__((unused)) void kb_event_cb (lv_event_t *e) {
@@ -55,12 +57,12 @@ void clock_count(int *hour, int *min, int *sec)
     if(*min == 60)
     {
         *min = 0;
-        if(*hour < 12)
+        if(*hour < 24)
         {
             (*hour)++;
         } else {
             (*hour)++;
-            *hour = *hour %12;
+            *hour = *hour %24;
         }
     }
 }
@@ -98,9 +100,45 @@ extern int screen_home_clock_now_hour_value;
 extern int screen_home_clock_now_min_value;
 extern int screen_home_clock_now_sec_value;
 
+
+extern int screen_home_clock_now_year_value;
+extern int screen_home_clock_now_month_value;
+extern int screen_home_clock_now_day_value;
+extern int screen_home_clock_now_w_day_value;
+//更新日期值
+void date_count(void)
+{
+    //获取时间戳
+    time_t now = time(NULL);
+    if(now != 0)
+    {
+        //分解时间
+        struct  tm t;
+        
+        localtime_r(&now, &t);
+
+        screen_home_clock_now_year_value = t.tm_year + 1900;
+        screen_home_clock_now_month_value = t.tm_mon + 1;
+        screen_home_clock_now_day_value = t.tm_mday;
+        screen_home_clock_now_w_day_value = t.tm_wday;
+
+
+        static const char* week_day_text[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+
+        //手动更新值
+        lv_label_set_text_fmt(guider_ui.screen_home_label_day,"%d年%d月%d日",screen_home_clock_now_year_value,screen_home_clock_now_month_value,screen_home_clock_now_day_value);
+
+        lv_label_set_text_fmt(guider_ui.screen_home_label_week, "%s", week_day_text[screen_home_clock_now_w_day_value]);
+    }
+}
+
 void screen_home_clock_now_timer(lv_timer_t *timer)
 {
     clock_count(&screen_home_clock_now_hour_value, &screen_home_clock_now_min_value, &screen_home_clock_now_sec_value);
+    if(screen_home_clock_now_hour_value == 0 && screen_home_clock_now_min_value == 0 && screen_home_clock_now_sec_value == 0)
+    {
+        date_count();
+    }
     if (lv_obj_is_valid(guider_ui.screen_home_clock_now))
     {
         lv_label_set_text_fmt(guider_ui.screen_home_clock_now, "%d:%02d:%02d", screen_home_clock_now_hour_value, screen_home_clock_now_min_value, screen_home_clock_now_sec_value);

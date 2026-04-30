@@ -13,6 +13,7 @@
 #include "events_init.h"
 #include "widgets_init.h"
 #include "custom.h"
+#include <time.h>
 
 
 
@@ -359,4 +360,12 @@ void setup_scr_screen_home(lv_ui *ui)
 
     //Init events for screen.
     events_init_screen_home(ui);
+
+    time_t now = time(NULL);
+    struct tm t;
+    localtime_r(&now, &t);
+    lv_label_set_text_fmt(ui->screen_home_clock_now, "%d:%02d:%02d", t.tm_hour, t.tm_min, t.tm_sec);
+    static const char* week_day_text[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
+    lv_label_set_text_fmt(ui->screen_home_label_day, "%d年%d月%d日", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
+    lv_label_set_text_fmt(ui->screen_home_label_week, "%s", week_day_text[t.tm_wday]);
 }
