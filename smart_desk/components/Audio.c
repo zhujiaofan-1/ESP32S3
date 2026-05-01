@@ -182,19 +182,19 @@ void Audio_spiffs_Init(void)
     esp_err_t ret = esp_vfs_spiffs_register(&spiffs_conf);
     if (ret != ESP_OK)
     {
-        ESP_LOGE(TAG, "SPIFFS挂载失败: %s，尝试格式化...", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Audio SPIFFS挂载失败: %s，尝试格式化...", esp_err_to_name(ret));
         spiffs_conf.format_if_mount_failed = true;
         ret = esp_vfs_spiffs_register(&spiffs_conf);
         if (ret != ESP_OK)
         {
-            ESP_LOGE(TAG, "SPIFFS格式化后仍挂载失败: %s", esp_err_to_name(ret));
+            ESP_LOGE(TAG, "Audio SPIFFS格式化后仍挂载失败: %s", esp_err_to_name(ret));
             return;
         }
-        ESP_LOGI(TAG, "SPIFFS格式化并挂载成功");
+        ESP_LOGI(TAG, "Audio SPIFFS格式化并挂载成功");
     }
     else
     {
-        ESP_LOGI(TAG, "SPIFFS挂载成功");
+        ESP_LOGI(TAG, "Audio SPIFFS挂载成功");
     }
 }
 

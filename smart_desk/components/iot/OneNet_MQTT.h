@@ -1,23 +1,15 @@
-/**
- * @file OneNet_MQTT.h
- * @brief OneNet MQTT通信接口
- */
-
 #ifndef _ONENET_MQTT_H
 #define _ONENET_MQTT_H
 
 #include "esp_err.h"
 
-//产品ID
 #define ONENET_PRODUCT_ID           "Dv57YAJzDX"
-//产品密钥
 #define ONENET_PRODUCT_ACCESS_KEY   "RzU/A0E1CQM1axUdbdEPM3uPV7G/ZQfLPaOJkXfRRwk="
-//设备名称
 #define ONENET_DEVICE_NAME             "ESP32LED01"
 
+typedef void (*onenet_connected_cb_t)(void);
+
 esp_err_t OneNet_Start(void);
-
-
-
+void OneNet_RegisterConnectedCallback(onenet_connected_cb_t cb);
 
 #endif

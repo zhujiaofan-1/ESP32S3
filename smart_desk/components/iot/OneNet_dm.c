@@ -213,16 +213,11 @@ cJSON* OneNet_property_upload(void)
     }
     */
 
-    //创建根节点
     cJSON* root = cJSON_CreateObject();
 
-    cJSON* params_js = cJSON_CreateObject();
-
-    //填充内容
     cJSON_AddStringToObject(root, "id", "123");
     cJSON_AddStringToObject(root, "version", "1.0");
-    //添加对象
-    params_js = cJSON_AddObjectToObject(root, "params");
+    cJSON* params_js = cJSON_AddObjectToObject(root, "params");
     //添加属性
     //亮度
     cJSON* Brightness_js = cJSON_AddObjectToObject(params_js,"Brightness");

@@ -69,6 +69,54 @@ void set_home_time(lv_ui* ui, int year, int month, int day, int w_day, int hour,
     lvgl_port_unlock();
 }
 
+//设置今天天气
+void set_today_weather(lv_ui* ui, char* img_path, int low, int high)
+{
+    lvgl_port_lock(0);
+
+    //设置图片
+    lv_img_set_src(ui->screen_home_img_today, img_path);
+
+    lv_label_set_text_fmt(ui->screen_home_label_temp1, "%d-%d℃", low, high);
+
+    lvgl_port_unlock();
+}
+void set_tomorrow_weather(lv_ui* ui, char* img_path, int low, int high)
+{
+    lvgl_port_lock(0);
+
+    lv_img_set_src(ui->screen_home_img_tomorrow, img_path);
+
+    lv_label_set_text_fmt(ui->screen_home_label_temp2, "%d-%d℃", low, high);
+
+    lvgl_port_unlock();
+}
+void set_after_weather(lv_ui* ui, char* img_path, int low, int high)
+{
+    lvgl_port_lock(0);
+
+    lv_img_set_src(ui->screen_home_img_afterq, img_path);
+
+    lv_label_set_text_fmt(ui->screen_home_label_temp3, "%d-%d℃", low, high);
+
+    lvgl_port_unlock();
+}
+
+// 展示WIFI状况
+void set_wifi_img(lv_ui* ui, char*img_path)
+{
+    lvgl_port_lock(0);
+    lv_img_set_src(ui->screen_home_img_wifi, img_path);
+    lvgl_port_unlock();
+}
+
+//设置城市
+void set_city(lv_ui* ui,  char* city)
+{
+    lvgl_port_lock(0);
+    lv_label_set_text_fmt(ui->screen_home_label_city, "%s", city);
+    lvgl_port_unlock();
+}
 
 void custom_init(lv_ui *ui)
 {

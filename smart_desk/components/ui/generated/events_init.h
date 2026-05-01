@@ -20,6 +20,8 @@ void events_init(lv_ui *ui);
 
 void events_init_screen_home(lv_ui *ui);
 void events_init_screen_monitor(lv_ui *ui);
+void events_init_screen_control(lv_ui *ui);
+void events_init_screen_wifi(lv_ui *ui);
 
 #ifdef __cplusplus
 }

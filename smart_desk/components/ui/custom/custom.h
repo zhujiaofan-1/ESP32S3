@@ -16,6 +16,13 @@ extern "C" {
 #include "gui_guider.h"
 
 void set_home_time(lv_ui* ui, int year, int month, int day, int w_day, int hour, int min, int sec);
+
+void set_today_weather(lv_ui* ui, char* img_path, int low, int high);
+void set_tomorrow_weather(lv_ui* ui, char* img_path, int low, int high);
+void set_after_weather(lv_ui* ui, char* img_path, int low, int high);
+void set_city(lv_ui* ui, char* city);
+void set_wifi_img(lv_ui* ui, char*img_path);
+
 void custom_init(lv_ui *ui);
 
 

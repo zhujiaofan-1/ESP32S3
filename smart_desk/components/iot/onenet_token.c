@@ -1,6 +1,6 @@
 #include "onenet_token.h"
+#include "esp_log.h"
 
-/*============================ 第三方库头文件 ============================*/
 #include "mbedtls/md5.h"
 #include "mbedtls/md.h"
 
@@ -350,7 +350,7 @@ int32_t
 dev_token_generate(char* token, enum sig_method_e method, uint32_t exp_time, const char* product_id, const char* dev_name, const char* access_key)
 {
     uint8_t  base64_data[64] = { 0 };
-    uint8_t  str_for_sig[64] = { 0 };
+    uint8_t  str_for_sig[128] = { 0 };
     uint8_t  sign_buf[128]   = { 0 };
     unsigned int base64_data_len = sizeof(base64_data);
     uint8_t* sig_method_str  = NULL;
@@ -387,6 +387,8 @@ dev_token_generate(char* token, enum sig_method_e method, uint32_t exp_time, con
     } else {
         sprintf((char*)str_for_sig, "%lu\n%s\nproducts/%s\n%s", exp_time, sig_method_str, product_id, DEV_TOKEN_VERISON_STR);
     }
+
+    ESP_LOGI("TOKEN", "签名字符串(len=%d): %s", strlen((char*)str_for_sig), (char*)str_for_sig);
 
     calc_hmd(method,base64_data,base64_data_len,str_for_sig,strlen((char*)str_for_sig),sign_buf);
 

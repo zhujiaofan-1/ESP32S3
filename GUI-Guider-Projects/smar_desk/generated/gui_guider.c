@@ -74,6 +74,8 @@ void init_scr_del_flag(lv_ui *ui)
 
     ui->screen_home_del = true;
     ui->screen_monitor_del = true;
+    ui->screen_control_del = true;
+    ui->screen_wifi_del = true;
 }
 
 void setup_bottom_layer(void)

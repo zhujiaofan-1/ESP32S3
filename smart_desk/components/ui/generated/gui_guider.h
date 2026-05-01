@@ -33,11 +33,11 @@ typedef struct
 	lv_obj_t *screen_home_label_temp1;
 	lv_obj_t *screen_home_label_temp2;
 	lv_obj_t *screen_home_label_temp3;
-	lv_obj_t *screen_home_img_wifi;
 	lv_obj_t *screen_home_img_fenge;
 	lv_obj_t *screen_home_img_today;
 	lv_obj_t *screen_home_img_tomorrow;
 	lv_obj_t *screen_home_img_afterq;
+	lv_obj_t *screen_home_img_wifi;
 	lv_obj_t *screen_monitor;
 	bool screen_monitor_del;
 	lv_obj_t *screen_monitor_cont_cpu;
@@ -57,6 +57,30 @@ typedef struct
 	lv_obj_t *screen_monitor_btn_connect_label;
 	lv_obj_t *screen_monitor_label_host;
 	lv_obj_t *screen_monitor_label_state;
+	lv_obj_t *screen_control;
+	bool screen_control_del;
+	lv_obj_t *screen_control_btn_light_switch;
+	lv_obj_t *screen_control_btn_light_switch_label;
+	lv_obj_t *screen_control_label_control_1;
+	lv_obj_t *screen_control_slider_RGB_red;
+	lv_obj_t *screen_control_slider_RGB_green;
+	lv_obj_t *screen_control_slider_RGB_bri;
+	lv_obj_t *screen_control_slider_RGB_blue;
+	lv_obj_t *screen_control_slider_light_bri;
+	lv_obj_t *screen_control_label_control_2;
+	lv_obj_t *screen_control_label_control_light_bri;
+	lv_obj_t *screen_wifi;
+	bool screen_wifi_del;
+	lv_obj_t *screen_wifi_label_wifi_1;
+	lv_obj_t *screen_wifi_label_current_ssid;
+	lv_obj_t *screen_wifi_btn_AP;
+	lv_obj_t *screen_wifi_btn_AP_label;
+	lv_obj_t *screen_wifi_label_wifi_2;
+	lv_obj_t *screen_wifi_label_wifi_AP;
+	lv_obj_t *screen_wifi_label_wifi_3;
+	lv_obj_t *screen_wifi_label_wifi_ip;
+	lv_obj_t *screen_wifi_img_wifi_title;
+	lv_obj_t *screen_wifi_label_wifi_title;
 	lv_obj_t *g_kb_top_layer;
 }lv_ui;
 
@@ -87,19 +111,28 @@ extern lv_ui guider_ui;
 
 void setup_scr_screen_home(lv_ui *ui);
 void setup_scr_screen_monitor(lv_ui *ui);
-LV_IMAGE_DECLARE(_wifi_RGB565A8_32x32);
+void setup_scr_screen_control(lv_ui *ui);
+void setup_scr_screen_wifi(lv_ui *ui);
 LV_IMAGE_DECLARE(_line_RGB565A8_303x18);
 LV_IMAGE_DECLARE(_qing_RGB565A8_50x50);
 LV_IMAGE_DECLARE(_yu_RGB565A8_50x50);
 LV_IMAGE_DECLARE(_yun_RGB565A8_50x50);
+LV_IMAGE_DECLARE(_wifi_disconnect_RGB565A8_32x31);
+
+LV_IMAGE_DECLARE(_screen_control_RGB565A8_320x240);
+
+LV_IMAGE_DECLARE(_screen_wifi_RGB565A8_320x240);
+LV_IMAGE_DECLARE(_wifi_RGB565A8_52x37);
 
 LV_FONT_DECLARE(lv_font_montserratMedium_16)
 LV_FONT_DECLARE(lv_font_montserratMedium_12)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_40)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_18)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_36)
+LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_16)
 LV_FONT_DECLARE(lv_font_SourceHanSerifSC_Regular_18)
 
+LV_FONT_DECLARE(lv_customer_font_ZiTiQuanWeiJunHeiW22_18)
 
 #ifdef __cplusplus
 }

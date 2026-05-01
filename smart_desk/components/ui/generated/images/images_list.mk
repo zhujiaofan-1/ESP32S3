@@ -1,1 +1,1 @@
-GEN_CSRCS += _wifi_RGB565A8_32x32.c _line_RGB565A8_303x18.c _qing_RGB565A8_50x50.c _yu_RGB565A8_50x50.c _yun_RGB565A8_50x50.c
+GEN_CSRCS += _line_RGB565A8_303x18.c _qing_RGB565A8_50x50.c _yu_RGB565A8_50x50.c _yun_RGB565A8_50x50.c _wifi_disconnect_RGB565A8_32x31.c _screen_control_RGB565A8_320x240.c _screen_wifi_RGB565A8_320x240.c _wifi_RGB565A8_52x37.c

@@ -13,7 +13,10 @@
 #include "events_init.h"
 #include "widgets_init.h"
 #include "custom.h"
+#include "esp_lvgl_port.h"
 #include <time.h>
+#include "my_sntp.h"
+#include "WIFI_manager.h"
 
 
 
@@ -58,9 +61,11 @@ void setup_scr_screen_home(lv_ui *ui)
     //Write codes screen_home_clock_now
     static bool screen_home_clock_now_timer_enabled = false;
     ui->screen_home_clock_now = lv_label_create(ui->screen_home);
-    lv_obj_set_pos(ui->screen_home_clock_now, 20, 33);
-    lv_obj_set_size(ui->screen_home_clock_now, 152, 50);
+    lv_obj_set_pos(ui->screen_home_clock_now, 15, 33);
+    lv_obj_set_size(ui->screen_home_clock_now, 160, 50);
     lv_label_set_text(ui->screen_home_clock_now, "11:25:50");
+    // 设置唯一的user_data用于验证
+    lv_obj_set_user_data(ui->screen_home_clock_now, (void*)0x12345678);
     if (!screen_home_clock_now_timer_enabled) {
         lv_timer_create(screen_home_clock_now_timer, 1000, NULL);
         screen_home_clock_now_timer_enabled = true;
@@ -82,16 +87,16 @@ void setup_scr_screen_home(lv_ui *ui)
 
     //Write codes screen_home_label_day
     ui->screen_home_label_day = lv_label_create(ui->screen_home);
-    lv_obj_set_pos(ui->screen_home_label_day, 180, 44);
+    lv_obj_set_pos(ui->screen_home_label_day, 180, 45);
     lv_obj_set_size(ui->screen_home_label_day, 129, 20);
-    lv_label_set_text(ui->screen_home_label_day, "2026年4月30日");
+    lv_label_set_text(ui->screen_home_label_day, "2026年1月1日");
     lv_label_set_long_mode(ui->screen_home_label_day, LV_LABEL_LONG_WRAP);
 
     //Write style for screen_home_label_day, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_home_label_day, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_day, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_day, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_day, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_day, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_day, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_day, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_day, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -107,14 +112,14 @@ void setup_scr_screen_home(lv_ui *ui)
     ui->screen_home_label_week = lv_label_create(ui->screen_home);
     lv_obj_set_pos(ui->screen_home_label_week, 184, 71);
     lv_obj_set_size(ui->screen_home_label_week, 119, 19);
-    lv_label_set_text(ui->screen_home_label_week, "星期四");
+    lv_label_set_text(ui->screen_home_label_week, "星期天");
     lv_label_set_long_mode(ui->screen_home_label_week, LV_LABEL_LONG_WRAP);
 
     //Write style for screen_home_label_week, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_home_label_week, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_week, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_week, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_week, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_week, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_week, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_week, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_week, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -128,16 +133,16 @@ void setup_scr_screen_home(lv_ui *ui)
 
     //Write codes screen_home_label_city
     ui->screen_home_label_city = lv_label_create(ui->screen_home);
-    lv_obj_set_pos(ui->screen_home_label_city, 261, 15);
-    lv_obj_set_size(ui->screen_home_label_city, 51, 16);
-    lv_label_set_text(ui->screen_home_label_city, "江门");
+    lv_obj_set_pos(ui->screen_home_label_city, 261, 12);
+    lv_obj_set_size(ui->screen_home_label_city, 51, 20);
+    lv_label_set_text(ui->screen_home_label_city, "未知");
     lv_label_set_long_mode(ui->screen_home_label_city, LV_LABEL_LONG_WRAP);
 
     //Write style for screen_home_label_city, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
     lv_obj_set_style_border_width(ui->screen_home_label_city, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_city, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_city, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_city, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_city, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_city, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_city, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_city, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -160,7 +165,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_today, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_today, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_today, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_today, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_today, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_today, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_today, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_today, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -183,7 +188,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_tomorrow, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_tomorrow, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_tomorrow, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_tomorrow, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_tomorrow, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_tomorrow, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_tomorrow, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_tomorrow, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -206,7 +211,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_after, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_after, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_after, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_after, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_after, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_after, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_after, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_after, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -229,7 +234,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_temp1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_temp1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_temp1, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_temp1, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_temp1, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_temp1, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_temp1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_temp1, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -252,7 +257,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_temp2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_temp2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_temp2, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_temp2, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_temp2, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_temp2, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_temp2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_temp2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -275,7 +280,7 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_border_width(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_radius(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(ui->screen_home_label_temp3, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_label_temp3, &lv_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui->screen_home_label_temp3, &lv_customer_font_ZiTiQuanWeiJunHeiW22_18, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_opa(ui->screen_home_label_temp3, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_letter_space(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_text_line_space(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
@@ -286,19 +291,6 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_pad_bottom(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_pad_left(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_shadow_width(ui->screen_home_label_temp3, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    //Write codes screen_home_img_wifi
-    ui->screen_home_img_wifi = lv_image_create(ui->screen_home);
-    lv_obj_set_pos(ui->screen_home_img_wifi, 3, 1);
-    lv_obj_set_size(ui->screen_home_img_wifi, 32, 32);
-    lv_obj_add_flag(ui->screen_home_img_wifi, LV_OBJ_FLAG_CLICKABLE);
-    lv_image_set_src(ui->screen_home_img_wifi, &_wifi_RGB565A8_32x32);
-    lv_image_set_pivot(ui->screen_home_img_wifi, 50,50);
-    lv_image_set_rotation(ui->screen_home_img_wifi, 0);
-
-    //Write style for screen_home_img_wifi, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
-    lv_obj_set_style_image_recolor_opa(ui->screen_home_img_wifi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_image_opa(ui->screen_home_img_wifi, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
 
     //Write codes screen_home_img_fenge
     ui->screen_home_img_fenge = lv_image_create(ui->screen_home);
@@ -352,6 +344,19 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_image_recolor_opa(ui->screen_home_img_afterq, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_image_opa(ui->screen_home_img_afterq, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
 
+    //Write codes screen_home_img_wifi
+    ui->screen_home_img_wifi = lv_image_create(ui->screen_home);
+    lv_obj_set_pos(ui->screen_home_img_wifi, 6, 6);
+    lv_obj_set_size(ui->screen_home_img_wifi, 32, 31);
+    lv_obj_add_flag(ui->screen_home_img_wifi, LV_OBJ_FLAG_CLICKABLE);
+    lv_image_set_src(ui->screen_home_img_wifi, &_wifi_disconnect_RGB565A8_32x31);
+    lv_image_set_pivot(ui->screen_home_img_wifi, 50,50);
+    lv_image_set_rotation(ui->screen_home_img_wifi, 0);
+
+    //Write style for screen_home_img_wifi, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
+    lv_obj_set_style_image_recolor_opa(ui->screen_home_img_wifi, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
+    lv_obj_set_style_image_opa(ui->screen_home_img_wifi, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
+
     //The custom code of screen_home.
 
 
@@ -361,9 +366,25 @@ void setup_scr_screen_home(lv_ui *ui)
     //Init events for screen.
     events_init_screen_home(ui);
 
+    //防止切屏的时候变回预设值
+    bool WIFI_state = WIFI_manager_is_connect();
+    static char WIFI_img_path[32];
+    if(WIFI_state)
+    {
+        snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_connect.png");
+    }else{
+        snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_disconnect.png");
+    }
+
+
     time_t now = time(NULL);
     struct tm t;
     localtime_r(&now, &t);
+    screen_home_clock_now_hour_value = t.tm_hour;
+    screen_home_clock_now_min_value = t.tm_min;
+    screen_home_clock_now_sec_value = t.tm_sec;
+    lv_img_set_src(ui->screen_home_img_wifi, WIFI_img_path);
+    
     lv_label_set_text_fmt(ui->screen_home_clock_now, "%d:%02d:%02d", t.tm_hour, t.tm_min, t.tm_sec);
     static const char* week_day_text[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
     lv_label_set_text_fmt(ui->screen_home_label_day, "%d年%d月%d日", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);

@@ -18,8 +18,8 @@
 
 #define TAG             "AP_WIFI"
 
-#define SPIFF_MOUNT     "/spiffs"
-#define HTML_PATH       "/spiffs/apcfg.html"
+#define SPIFF_MOUNT     "/html"
+#define HTML_PATH       "/html/apcfg.html"
 
 #define APCFG_BIT       (BIT0)
 

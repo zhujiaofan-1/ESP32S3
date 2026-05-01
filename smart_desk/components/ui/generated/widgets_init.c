@@ -10,6 +10,7 @@
 #include "lvgl.h"
 #include "gui_guider.h"
 #include "widgets_init.h"
+#include "esp_lvgl_port.h"
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -57,7 +58,7 @@ void clock_count(int *hour, int *min, int *sec)
     if(*min == 60)
     {
         *min = 0;
-        if(*hour < 24)
+        if(*hour < 23)
         {
             (*hour)++;
         } else {
@@ -125,10 +126,24 @@ void date_count(void)
 
         static const char* week_day_text[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
 
-        //手动更新值
-        lv_label_set_text_fmt(guider_ui.screen_home_label_day,"%d年%d月%d日",screen_home_clock_now_year_value,screen_home_clock_now_month_value,screen_home_clock_now_day_value);
+        //最安全的检查：验证user_data是否匹配，并且父对象是当前活动屏幕
+        if (lv_obj_is_valid(guider_ui.screen_home_clock_now))
+        {
+            if (lv_obj_get_user_data(guider_ui.screen_home_clock_now) == (void*)0x12345678)
+            {
+                lv_obj_t *act_scr = lv_screen_active();
+                lv_obj_t *parent = lv_obj_get_parent(guider_ui.screen_home_clock_now);
+                if (parent == act_scr)
+                {
+                    //手动更新值
+                    lvgl_port_lock(0);
+                    lv_label_set_text_fmt(guider_ui.screen_home_label_day,"%d年%d月%d日",screen_home_clock_now_year_value,screen_home_clock_now_month_value,screen_home_clock_now_day_value);
 
-        lv_label_set_text_fmt(guider_ui.screen_home_label_week, "%s", week_day_text[screen_home_clock_now_w_day_value]);
+                    lv_label_set_text_fmt(guider_ui.screen_home_label_week, "%s", week_day_text[screen_home_clock_now_w_day_value]);
+                    lvgl_port_unlock();
+                }
+            }
+        }
     }
 }
 
@@ -139,9 +154,21 @@ void screen_home_clock_now_timer(lv_timer_t *timer)
     {
         date_count();
     }
+
+    //最安全的检查：验证user_data是否匹配，并且父对象是当前活动屏幕
     if (lv_obj_is_valid(guider_ui.screen_home_clock_now))
     {
-        lv_label_set_text_fmt(guider_ui.screen_home_clock_now, "%d:%02d:%02d", screen_home_clock_now_hour_value, screen_home_clock_now_min_value, screen_home_clock_now_sec_value);
+        if (lv_obj_get_user_data(guider_ui.screen_home_clock_now) == (void*)0x12345678)
+        {
+            lv_obj_t *act_scr = lv_screen_active();
+            lv_obj_t *parent = lv_obj_get_parent(guider_ui.screen_home_clock_now);
+            if (parent == act_scr)
+            {
+                lvgl_port_lock(0);
+                lv_label_set_text_fmt(guider_ui.screen_home_clock_now, "%d:%02d:%02d", screen_home_clock_now_hour_value, screen_home_clock_now_min_value, screen_home_clock_now_sec_value);
+                lvgl_port_unlock();
+            }
+        }
     }
 }
 

@@ -7,3 +7,4 @@ include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(OneNet)
 
 spiffs_create_partition_image(html html FLASH_IN_PROJECT)
+spiffs_create_partition_image(img img FLASH_IN_PROJECT)
