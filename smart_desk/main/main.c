@@ -39,6 +39,7 @@
 #include "my_sntp.h"
 #include "esp_sntp.h"
 #include <time.h>
+#include "weather.h"
 
 
 
@@ -249,6 +250,8 @@ void app_main(void)
     setup_ui(&guider_ui);       //加载预设ui
     custom_init(&guider_ui);    //自定义需求初始化
     lvgl_port_unlock();
+
+    weather_start();
 
     EventBits_t wifi_ev_bit;
     while(1)

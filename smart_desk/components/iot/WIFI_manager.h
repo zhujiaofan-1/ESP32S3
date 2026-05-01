@@ -24,4 +24,6 @@ esp_err_t WIFI_manager_AP(void);        //进入AP模式
 
 esp_err_t WIFI_manager_scan(p_wifi_scan_cb f);      //扫描WIFI，需要传入扫描的回调函数
 
+bool WIFI_manager_is_connect(void);
+
 #endif

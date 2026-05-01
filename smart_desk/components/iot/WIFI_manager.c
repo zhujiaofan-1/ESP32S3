@@ -22,6 +22,7 @@
 #include "esp_log.h"
 #include "esp_wifi_types_generic.h"
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -420,4 +421,9 @@ esp_err_t WIFI_manager_scan(p_wifi_scan_cb f)
     
     return ESP_ERR_INVALID_STATE;
     
+}
+
+bool WIFI_manager_is_connect(void)
+{
+    return STA_Connect_State;
 }
