@@ -1,3 +1,10 @@
+/**
+ * @file weather.c
+ * @brief 天气数据获取实现文件
+ *
+ * 通过心知天气API获取天气预报数据，通过IP定位获取当前城市
+ */
+
 #include "weather.h"
 
 /*============================ ESP-IDF 头文件 ============================*/
@@ -22,7 +29,7 @@
 #define TAG     "weather"
 
 //HTTP接收缓冲区大小
-#define WEATHER_BUFF_LEN        1024
+#define WEATHER_BUFF_LEN        2048
 
 //心知天气API私钥
 #define WEATHER_PRIVATE_KEY         "SuOsxAsIfNYvONOEZ"
@@ -36,7 +43,18 @@ static int weather_data_size = 0;
 
 //当前城市拼音，用于天气查询
 static char weather_city[48];
-static char chinese_city[48];   //中文城市名
+char chinese_city[48];   //中文城市名
+
+//天气图片路径
+char today_img_path[32];
+char tomorrow_img_path[32];
+char after_img_path[32];
+
+//天气数据图片
+weather_img_path_t img_path;
+//天气数据
+weather_data_pkt_t wt_data[3];
+
 
 /**
  * @brief HTTP事件回调函数
@@ -87,8 +105,8 @@ static char chinese_city[48];   //中文城市名
              
              
          case HTTP_EVENT_ON_FINISH:
-             ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
-             break;
+            ESP_LOGI(TAG, "HTTP_EVENT_ON_FINISH");
+            break;
          case HTTP_EVENT_DISCONNECTED:
              ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
              break;
@@ -103,23 +121,11 @@ static char chinese_city[48];   //中文城市名
  * @brief 天气数据解析函数
  *
  * 解析心知天气API返回的JSON数据，提取未来3天的最高温度、最低温度和天气代码
- * 并保存到weather_data_pkt_t结构体数组中
- *
- * JSON数据格式示例：
- * {
- *   "results": [{
- *     "daily": [
- *       {"high":"30","low":"22","code_day":"1"},
- *       {"high":"31","low":"23","code_day":"0"},
- *       {"high":"29","low":"21","code_day":"9"}
- *     ]
- *   }]
- * }
+ * 并更新到屏幕UI
  *
  * @param weather_data 心知天气API返回的JSON字符串
- * @return esp_err_t ESP_OK表示解析成功，ESP_FAIL表示解析失败
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
  */
- //数据解析函数
 static esp_err_t pasre_weather(char* weather_data)
 {
      cJSON* wt_js = cJSON_Parse(weather_data);
@@ -141,7 +147,7 @@ static esp_err_t pasre_weather(char* weather_data)
 
      cJSON* daily_js = cJSON_GetObjectItem(result_child_js, "daily");
 
-     weather_data_pkt_t data[3];
+    
     int index = 0;
      if(daily_js)
      {
@@ -157,10 +163,10 @@ static esp_err_t pasre_weather(char* weather_data)
             if(index < 3)
             {
                 //转换  字符串到整形
-                sscanf(cJSON_GetStringValue(high_js), "%d", &data[index].high_temp);
-                sscanf(cJSON_GetStringValue(low_js), "%d", &data[index].low_temp);
-                snprintf(data[index].weather_code, sizeof(data[index].weather_code),"%s", cJSON_GetStringValue(code_day_js));
-                ESP_LOGI(TAG, "day[%d]->high=%d,low=%d,day_code=%s",index,data[index].high_temp,data[index].low_temp,data[index].weather_code);
+                sscanf(cJSON_GetStringValue(high_js), "%d", &wt_data[index].high_temp);
+                sscanf(cJSON_GetStringValue(low_js), "%d", &wt_data[index].low_temp);
+                snprintf(wt_data[index].weather_code, sizeof(wt_data[index].weather_code),"%s", cJSON_GetStringValue(code_day_js));
+                ESP_LOGI(TAG, "day[%d]->high=%d,low=%d,day_code=%s",index,wt_data[index].high_temp,wt_data[index].low_temp,wt_data[index].weather_code);
             }
             index ++;
             daily_child_js = daily_child_js->next;
@@ -169,15 +175,15 @@ static esp_err_t pasre_weather(char* weather_data)
         //设置到屏幕    
         
         //生成天气图片路径
-        char img_path[32];
-        snprintf(img_path,sizeof(img_path), "/img/%s@1x.png", data[0].weather_code);
-        set_today_weather(&guider_ui, img_path, data[0].low_temp, data[0].high_temp);
+        
+        snprintf(img_path.today_img_path,sizeof(img_path.today_img_path), "/img/%s@1x.png", wt_data[0].weather_code);
+        set_today_weather(&guider_ui, img_path.today_img_path, wt_data[0].low_temp, wt_data[0].high_temp);
 
-        snprintf(img_path,sizeof(img_path), "/img/%s@1x.png", data[1].weather_code);
-        set_tomorrow_weather(&guider_ui, img_path, data[1].low_temp, data[1].high_temp);
+        snprintf(img_path.tomorrow_img_path,sizeof(img_path.tomorrow_img_path), "/img/%s@1x.png", wt_data[1].weather_code);
+        set_tomorrow_weather(&guider_ui, img_path.tomorrow_img_path, wt_data[1].low_temp, wt_data[1].high_temp);
 
-        snprintf(img_path,sizeof(img_path), "/img/%s@1x.png", data[2].weather_code);
-        set_after_weather(&guider_ui, img_path, data[2].low_temp, data[2].high_temp);
+        snprintf(img_path.after_img_path,sizeof(img_path.after_img_path), "/img/%s@1x.png", wt_data[2].weather_code);
+        set_after_weather(&guider_ui, img_path.after_img_path, wt_data[2].low_temp, wt_data[2].high_temp);
 
 
         //设置城市
@@ -200,7 +206,7 @@ static esp_err_t pasre_weather(char* weather_data)
   *
   * @return esp_err_t ESP_OK表示请求成功，其他值表示请求失败
   */
- static esp_err_t   weather_http_connect(void)
+ static esp_err_t weather_http_connect(void)
  {
     static char url[256];
     snprintf(url, sizeof(url),"http://api.seniverse.com/v3/weather/daily.json?key=%s&location=%s&language=zh-Hans&unit=c&start=0&days=3",WEATHER_PRIVATE_KEY, weather_city);
@@ -234,21 +240,11 @@ static esp_err_t pasre_weather(char* weather_data)
 /**
  * @brief 地址数据解析函数
  *
- * 解析IP定位API返回的JSON数据，提取城市编码并保存到全局变量weather_city中
- * 用于后续天气查询
- *
- * JSON数据格式示例：
- * {
- *   "data": {
- *     "city_code": "jiangmen",
- *     "city": "江门"
- *   }
- * }
+ * 解析IP定位API返回的JSON数据，提取城市编码和中文城市名
  *
  * @param location_data IP定位API返回的JSON字符串
- * @return esp_err_t ESP_OK表示解析成功，ESP_FAIL表示解析失败
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
  */
-//地址数据解析
 static esp_err_t pasre_location(char* location_data)
 {
     // cJSON* location_js = cJSON_Parse(location_data);
@@ -339,13 +335,11 @@ static esp_err_t pasre_location(char* location_data)
  }
 
 /**
- * @brief 天气任务函数
+ * @brief 天气任务
  *
- * 循环检测WiFi连接状态，联网后依次执行IP定位和天气查询
- * 每30分钟更新一次天气数据
+ * 循环执行IP定位和天气查询，每30分钟更新一次
  *
  * @param param 任务参数（未使用）
- * @return 无
  */
 static void weather_task(void* param)
 {
@@ -370,9 +364,7 @@ static void weather_task(void* param)
 /**
  * @brief 启动天气任务
  *
- * 创建天气任务，在核心1上运行，任务栈大小4096字节，优先级2
- *
- * @return 无
+ * 创建天气任务，在核心1上运行，循环执行IP定位和天气查询
  */
 void weather_start(void)
 {

@@ -27,13 +27,13 @@ static void screen_home_event_handler (lv_event_t *e)
         case LV_DIR_LEFT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_monitor, guider_ui.screen_monitor_del, &guider_ui.screen_home_del, setup_scr_screen_monitor, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_monitor, guider_ui.screen_monitor_del, &guider_ui.screen_home_del, setup_scr_screen_monitor, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, false);
             break;
         }
         case LV_DIR_RIGHT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_control, guider_ui.screen_control_del, &guider_ui.screen_home_del, setup_scr_screen_control, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_control, guider_ui.screen_control_del, &guider_ui.screen_home_del, setup_scr_screen_control, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, false);
             break;
         }
         default:
@@ -62,13 +62,13 @@ static void screen_monitor_event_handler (lv_event_t *e)
         case LV_DIR_RIGHT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_home, guider_ui.screen_home_del, &guider_ui.screen_monitor_del, setup_scr_screen_home, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_home, guider_ui.screen_home_del, &guider_ui.screen_monitor_del, setup_scr_screen_home, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, false);
             break;
         }
         case LV_DIR_LEFT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_wifi, guider_ui.screen_wifi_del, &guider_ui.screen_monitor_del, setup_scr_screen_wifi, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_wifi, guider_ui.screen_wifi_del, &guider_ui.screen_monitor_del, setup_scr_screen_wifi, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, false);
             break;
         }
         default:
@@ -81,9 +81,24 @@ static void screen_monitor_event_handler (lv_event_t *e)
     }
 }
 
+static void screen_monitor_btn_connect_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_CLICKED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void events_init_screen_monitor (lv_ui *ui)
 {
     lv_obj_add_event_cb(ui->screen_monitor, screen_monitor_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_monitor_btn_connect, screen_monitor_btn_connect_event_handler, LV_EVENT_ALL, ui);
 }
 
 static void screen_control_event_handler (lv_event_t *e)
@@ -97,13 +112,13 @@ static void screen_control_event_handler (lv_event_t *e)
         case LV_DIR_LEFT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_home, guider_ui.screen_home_del, &guider_ui.screen_control_del, setup_scr_screen_home, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_home, guider_ui.screen_home_del, &guider_ui.screen_control_del, setup_scr_screen_home, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, false);
             break;
         }
         case LV_DIR_RIGHT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_wifi, guider_ui.screen_wifi_del, &guider_ui.screen_control_del, setup_scr_screen_wifi, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_wifi, guider_ui.screen_wifi_del, &guider_ui.screen_control_del, setup_scr_screen_wifi, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, false);
             break;
         }
         default:
@@ -116,9 +131,99 @@ static void screen_control_event_handler (lv_event_t *e)
     }
 }
 
+static void screen_control_btn_light_switch_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_CLICKED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_control_slider_RGB_red_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_control_slider_RGB_green_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_control_slider_RGB_bri_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_control_slider_RGB_blue_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_control_slider_light_bri_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_VALUE_CHANGED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void events_init_screen_control (lv_ui *ui)
 {
     lv_obj_add_event_cb(ui->screen_control, screen_control_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_btn_light_switch, screen_control_btn_light_switch_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_slider_RGB_red, screen_control_slider_RGB_red_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_slider_RGB_green, screen_control_slider_RGB_green_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_slider_RGB_bri, screen_control_slider_RGB_bri_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_slider_RGB_blue, screen_control_slider_RGB_blue_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_control_slider_light_bri, screen_control_slider_light_bri_event_handler, LV_EVENT_ALL, ui);
 }
 
 static void screen_wifi_event_handler (lv_event_t *e)
@@ -132,13 +237,13 @@ static void screen_wifi_event_handler (lv_event_t *e)
         case LV_DIR_LEFT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_control, guider_ui.screen_control_del, &guider_ui.screen_wifi_del, setup_scr_screen_control, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_control, guider_ui.screen_control_del, &guider_ui.screen_wifi_del, setup_scr_screen_control, LV_SCR_LOAD_ANIM_OVER_LEFT, 200, 200, false, false);
             break;
         }
         case LV_DIR_RIGHT:
         {
             lv_indev_wait_release(lv_indev_active());
-            ui_load_scr_animation(&guider_ui, &guider_ui.screen_monitor, guider_ui.screen_monitor_del, &guider_ui.screen_wifi_del, setup_scr_screen_monitor, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, true);
+            ui_load_scr_animation(&guider_ui, &guider_ui.screen_monitor, guider_ui.screen_monitor_del, &guider_ui.screen_wifi_del, setup_scr_screen_monitor, LV_SCR_LOAD_ANIM_OVER_RIGHT, 200, 200, false, false);
             break;
         }
         default:
@@ -151,9 +256,39 @@ static void screen_wifi_event_handler (lv_event_t *e)
     }
 }
 
+static void screen_wifi_btn_AP_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_CLICKED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
+static void screen_wifi_btn_connect_wifi_event_handler (lv_event_t *e)
+{
+    lv_event_code_t code = lv_event_get_code(e);
+    switch (code) {
+    case LV_EVENT_CLICKED:
+    {
+
+        break;
+    }
+    default:
+        break;
+    }
+}
+
 void events_init_screen_wifi (lv_ui *ui)
 {
     lv_obj_add_event_cb(ui->screen_wifi, screen_wifi_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_wifi_btn_AP, screen_wifi_btn_AP_event_handler, LV_EVENT_ALL, ui);
+    lv_obj_add_event_cb(ui->screen_wifi_btn_connect_wifi, screen_wifi_btn_connect_wifi_event_handler, LV_EVENT_ALL, ui);
 }
 
 

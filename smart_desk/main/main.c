@@ -30,7 +30,7 @@
 /*============================ 项目模块头文件 ============================*/
 #include "button.h"
 #include "XL9555.h"
-#include "Audio.h"
+
 #include "lvgl/ft6336u_driver.h"
 #include "lvgl/lv_port.h"
 #include "iot/AP_WIFI.h"
@@ -41,6 +41,7 @@
 #include <time.h>
 #include "weather.h"
 #include "weather_img.h"
+#include "led_control.h"
 
 
 
@@ -48,7 +49,7 @@
 
 #define WIFI_CONNECT_BIT        (BIT0)
 #define RECORD_TRIGGER_BIT      (BIT1)
-#define ONENET_CONNECTED_BIT    (BIT2)
+
 
 
 
@@ -60,17 +61,20 @@ lv_ui guider_ui;
 
 //默认WIFI图表为断开，路径
 static char WIFI_img_path[32];
-
+extern weather_img_path_t img_path;
+extern char chinese_city[48]; 
 
 //用于通知WIFI已经连接
 static EventGroupHandle_t main_ev = NULL;
 
 static bool weather_started = false;
 
+/**
+ * @brief OneNet MQTT连接成功回调函数
+ */
 void onenet_connected_callback(void)
 {
-    ESP_LOGI(TAG, "OneNet MQTT连接成功！");
-    xEventGroupSetBits(main_ev, ONENET_CONNECTED_BIT);
+    ESP_LOGI(TAG, "OneNet已连接");
 }
 
 /**
@@ -82,7 +86,6 @@ void onenet_connected_callback(void)
  * @param Pin 发生变化的引脚编号
  * @param Level 新的电平状态（1为高电平，0为低电平）
  */
-// XL9555的电平变化回调函数
 void XL9555_Input_callback(uint16_t Pin, int Level)
 {
     if (Level == 1)
@@ -111,7 +114,6 @@ void XL9555_Input_callback(uint16_t Pin, int Level)
  *
  * @param gpio 触发长按事件的 GPIO 引脚编号
  */
-//长按回调函数
 void btn_long_press_callback(int gpio)
 {
     if(gpio == IO0_1)
@@ -145,7 +147,6 @@ void btn_short_press_callback(int gpio)
  * @param gpio 要读取电平的 GPIO 引脚编号
  * @return 1 表示高电平，0 表示低电平
  */
-//获取gpio电平回调函数
 int get_gpio_level_callback(int gpio)
 {
     // 与特定的引脚相与不为0，则return  1
@@ -153,13 +154,12 @@ int get_gpio_level_callback(int gpio)
 }
 
 /**
- * @brief 按键初始化
+ * @brief 应用层按键初始化
  *
  * 初始化 XL9555 IO 扩展芯片并注册按键配置，
  * 设置输入模式和长按回调函数。
  */
-//button初始化
-void button_Init(void)
+static void app_button_init(void)
 {
     //注册按键
     button_config_t btn_cfg =
@@ -184,7 +184,6 @@ void button_Init(void)
  *
  * @param state 当前 WIFI 连接状态
  */
-//WIFI状态回调函数
 void wifi_stat_callback(WIFI_STATE state)
 {
     if(state == WIFI_STATE_CONNECTED)
@@ -195,17 +194,34 @@ void wifi_stat_callback(WIFI_STATE state)
 
         //更新屏幕WIFI图标
         snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_connect.png");
+        
         set_wifi_img(&guider_ui, WIFI_img_path);
+        set_wifi_state(&guider_ui, true);
+
+        set_wifi_ssid(&guider_ui, get_wifi_ssid());
+        
+        set_AP_ssid(&guider_ui, get_AP_wifi_ssid());
     }
     if(state == WIFI_STATE_DISCONNECTED)
     {
         ESP_LOGI(TAG, "WIFI已断开！");
+
+        //断网加载默认设置
         snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_disconnect.png");
         set_wifi_img(&guider_ui, WIFI_img_path);
+        set_wifi_state(&guider_ui, false);
+
+
     }
 }
 
-//对时回调函数
+/**
+ * @brief SNTP时间同步完成回调函数
+ *
+ * 当NTP时间同步成功后调用，分解时间并更新首页时钟显示
+ *
+ * @param tv 同步后的时间值
+ */
 void sntp_finish_callback (struct timeval *tv)
 {
     //分解时间
@@ -239,13 +255,12 @@ void app_main(void)
     ESP_LOGI(TAG, "Free DMA capable heap: %d bytes", heap_caps_get_free_size(MALLOC_CAP_DMA));
     ESP_LOGI(TAG, "Free SPIRAM heap: %d bytes", heap_caps_get_free_size(MALLOC_CAP_SPIRAM));
 
-    Audio_spiffs_Init();
+    // Audio_spiffs_Init();
 
     // 创建事件组
     main_ev = xEventGroupCreate();
 
-    // 初始化数据模型模块
-    OneNet_dm_Init();
+    led_control_Init();
 
     // 初始化 XL9555 芯片，配置中断回调引脚
     XL9555_Init(GPIO_NUM_10, GPIO_NUM_11, GPIO_NUM_17, XL9555_Input_callback);
@@ -253,7 +268,7 @@ void app_main(void)
     XL9555_IO_Cofig(0xffff & (~(IO0_0 | IO1_3 | IO1_2)));    //设置为输入模式,IO_0需要为输出
 
     // 初始化按键
-    button_Init();
+    app_button_init();
 
     // // 初始化扬声器（BCLK=GPIO46, WS=GPIO9, SD=GPIO8, 采样率48000Hz）
     // Speaker_Init(GPIO_NUM_46, GPIO_NUM_9, GPIO_NUM_8, 48000);
@@ -269,15 +284,16 @@ void app_main(void)
 
     //初始化屏幕
     lv_port_Init();
-    lvgl_port_lock(0);              //代码不在 LVGL 自己的刷新任务里,在别的任务操作则需要加锁
     // lv_demo_widgets();
+    lvgl_port_lock(0);
     setup_ui(&guider_ui);       //加载预设ui
     custom_init(&guider_ui);    //自定义需求初始化
-    lvgl_port_unlock();
-
     //先设置初始化WIFI图标为未连接
     snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_disconnect.png");
     set_wifi_img(&guider_ui, WIFI_img_path);
+    lvgl_port_unlock();
+
+
 
     OneNet_RegisterConnectedCallback(onenet_connected_callback);
 
@@ -286,7 +302,7 @@ void app_main(void)
     {
         vTaskDelay(pdMS_TO_TICKS(1000));
 
-        wifi_ev_bit = xEventGroupWaitBits(main_ev, WIFI_CONNECT_BIT | RECORD_TRIGGER_BIT | ONENET_CONNECTED_BIT, pdFALSE, pdFALSE, 0);
+        wifi_ev_bit = xEventGroupWaitBits(main_ev, WIFI_CONNECT_BIT | RECORD_TRIGGER_BIT , pdFALSE, pdFALSE, 0);
 
         // if(wifi_ev_bit & RECORD_TRIGGER_BIT)
         // {
@@ -305,25 +321,25 @@ void app_main(void)
         {
             xEventGroupClearBits(main_ev, WIFI_CONNECT_BIT);
 
-
-            ESP_LOGI(TAG, "WiFi已连接，准备启动OneNet，可用堆: %d bytes", esp_get_free_heap_size());
-
-            my_sntp_Init(sntp_finish_callback);
-
-            OneNet_Start();
-        }
-
-        if(wifi_ev_bit & ONENET_CONNECTED_BIT)
-        {
-            xEventGroupClearBits(main_ev, ONENET_CONNECTED_BIT);
-
+            
             if(!weather_started)
             {
-                weather_started = true;
-                ESP_LOGI(TAG, "OneNet已连接，延迟3秒后启动天气任务");
-                vTaskDelay(pdMS_TO_TICKS(3000));
                 weather_start();
+                weather_started = true;
+                ESP_LOGI(TAG, "天气任务已启动，延迟2秒后启动OneNet连接");
+                vTaskDelay(pdMS_TO_TICKS(2000));
+
+                ESP_LOGI(TAG, "准备启动OneNet，可用堆: %d bytes", esp_get_free_heap_size());
+
+                my_sntp_Init(sntp_finish_callback);
+
+                OneNet_Start();
+                
             }
+
+            
         }
+
+      
     }
 }

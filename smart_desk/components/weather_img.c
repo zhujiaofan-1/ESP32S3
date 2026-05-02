@@ -1,3 +1,8 @@
+/**
+ * @file weather_img.c
+ * @brief 天气图片SPIFFS挂载实现文件
+ */
+
 #include "weather_img.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
@@ -6,6 +11,11 @@
 
 #define SPIFF_MOUNT     "/img"
 
+/**
+ * @brief 初始化天气图片SPIFFS分区
+ *
+ * 挂载img分区，用于存放天气图标等图片资源
+ */
 void img_spiffs_Init(void)
 {
     esp_vfs_spiffs_conf_t spiffs_conf =

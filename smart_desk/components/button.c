@@ -2,11 +2,10 @@
  * @file button.c
  * @brief 按键驱动管理实现文件
  *
- * 该文件实现了按键的添加、状态管理和事件检测功能。采用链表结构管理多个按键，
- * 使用 ESP32-S3 的 esp_timer 定时器进行按键扫描，支持短按和长按检测。
+ * 基于定时器扫描的按键驱动，支持短按和长按检测，
+ * 使用链表管理多个按键
  */
 
-/*================================== 头文件引用 =========================================*/
 #include "button.h"
 
 #include "esp_err.h"
@@ -27,14 +26,28 @@ static esp_timer_handle_t  button_timer_handle;              // 按键扫描定�
 static bool timer_running = false;                           // 定时器创建标志位，防止重复创建
 
 /*================================== 函数声明 =========================================*/
-static void button_handle(void* arg);//定时器回调函数
+static void button_handle(void* arg);
 
 /*================================== 按键管理函数 =======================================*/
 /**
- * @brief 添加一个新的按键到系统中
- * @param cfg 按键配置结构体指针，包含按键的GPIO引脚、激活电平、长按时间和回调函数等信息
- * @return ESP_OK: 成功；ESP_FAIL: 失败
- * @note 该函数会将新按键添加到按键管理链表中，为后续的按键状态检测和事件处理做准备
+ * @brief 初始化按键模块
+ *
+ * 初始化GPIO并创建按键扫描定时器
+ *
+ * @return esp_err_t ESP_OK成功，其他失败
+ */
+esp_err_t button_Init(void)
+{
+    return ESP_OK;
+}
+
+/**
+ * @brief 添加按键
+ *
+ * 将按键配置加入按键链表
+ *
+ * @param cfg 按键配置结构体指针
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
  */
 esp_err_t Button_Add(button_config_t* cfg)
 {
@@ -112,7 +125,13 @@ esp_err_t Button_Add(button_config_t* cfg)
     return ESP_OK; // 添加按键成功
 }
 
-//按键定时器回调函数
+/**
+ * @brief 按键扫描定时器回调函数
+ *
+ * 周期性调用button_scan进行按键状态检测
+ *
+ * @param arg 定时器参数（未使用）
+ */
 static void button_handle(void* arg)
 {
     button_info_t * btn_info = button_head;

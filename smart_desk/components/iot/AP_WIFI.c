@@ -1,3 +1,14 @@
+/**
+ * @file AP_WIFI.c
+ * @brief AP配网模块实现文件
+ *
+ * 该模块负责ESP32的AP配网功能，包括：
+ * - 启动AP热点模式供用户连接
+ * - 启动Web服务器和WebSocket服务
+ * - 接收用户通过网页提交的WiFi配置信息
+ * - 切换回STA模式连接指定WiFi
+ */
+
 #include "AP_WIFI.h"
 
 /*============================ ESP-IDF 头文件 ============================*/
@@ -12,6 +23,7 @@
 #include "WIFI_manager.h"
 #include "WS_Serve.h"
 #include "cJSON.h"
+#include "OneNet_MQTT.h"
 
 #include <string.h>
 #include <sys/stat.h>
@@ -30,9 +42,19 @@ static char Current_password[64];
 static TaskHandle_t AP_WIFI_Handle = NULL;
 static EventGroupHandle_t APcfg_ev;
 
-//存储html网页
+#define APCFG_START_BIT     (BIT1)
+
 static char * html_code = NULL;
 
+static void ws_receive_handle(uint8_t* payload, int len);
+
+/**
+ * @brief 从SPIFFS读取AP配网页面HTML文件
+ *
+ * 挂载SPIFFS分区，读取apcfg.html文件内容到内存缓冲区
+ *
+ * @return char* HTML文件内容字符串指针，失败返回NULL
+ */
 static char *Init_web_page_buffer(void)
 {
     esp_vfs_spiffs_conf_t spiffs_conf =
@@ -92,12 +114,53 @@ static char *Init_web_page_buffer(void)
     return buf;
 }
 
+/**
+ * @brief AP配网任务
+ *
+ * 等待AP配网启动事件，进入AP模式并启动Web服务器；
+ * 等待配网完成事件，关闭Web服务器并连接用户指定的WiFi
+ *
+ * @param param 任务参数（未使用）
+ */
 static void AP_WIFI_Task(void* param)
 {
     EventBits_t ev;
     while (1)
     {
-        ev = xEventGroupWaitBits(APcfg_ev, APCFG_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10*1000));
+        ev = xEventGroupWaitBits(APcfg_ev, APCFG_BIT | APCFG_START_BIT, pdTRUE, pdFALSE, pdMS_TO_TICKS(10*1000));
+
+        if(ev & APCFG_START_BIT)
+        {
+            ESP_LOGI(TAG, "进入AP配网模式...");
+            
+            OneNet_Stop();
+            
+            esp_err_t ret = WIFI_manager_AP();
+            if(ret != ESP_OK)
+            {
+                ESP_LOGE(TAG, "进入AP模式失败: %s", esp_err_to_name(ret));
+            }
+            else
+            {
+                ESP_LOGI(TAG, "AP模式启动成功，IP地址: 192.168.100.1");
+                
+                ws_cfg_t ws_cfg =
+                {
+                    .html_code = html_code,
+                    .receive_fn = ws_receive_handle,
+                };
+                ret = Web_WS_Start(&ws_cfg);
+                if(ret != ESP_OK)
+                {
+                    ESP_LOGE(TAG, "启动Web服务器失败: %s", esp_err_to_name(ret));
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "Web服务器启动成功，请访问 http://192.168.100.1");
+                }
+            }
+        }
+
         if(ev & APCFG_BIT)
         {
             _Web_WS_Stop();
@@ -114,6 +177,13 @@ static void AP_WIFI_Task(void* param)
 }
 
 
+/**
+ * @brief 初始化AP配网模块
+ *
+ * 初始化WiFi管理器、加载HTML页面文件、创建事件组和AP配网任务
+ *
+ * @param f WiFi状态回调函数
+ */
 void AP_WIFI_Init(p_wifi_state_cb f)
 {
     //初始化WIFI
@@ -137,12 +207,22 @@ void AP_WIFI_Init(p_wifi_state_cb f)
     
 }
 
+/**
+ * @brief 使用配网获取的SSID和密码连接WiFi
+ */
 void AP_WIFI_Connect()
 {
 
 }
 
-// 扫描得到数据处理的回调函数
+/**
+ * @brief WiFi扫描结果处理回调函数
+ *
+ * 将扫描到的AP列表组装成JSON格式，通过WebSocket发送给网页客户端
+ *
+ * @param num 扫描到的AP数量
+ * @param ap_record AP信息记录数组指针
+ */
 void WIFI_Scan_handle(int num, wifi_ap_record_t *ap_record)
 {
     cJSON* root = cJSON_CreateObject();
@@ -183,7 +263,16 @@ void WIFI_Scan_handle(int num, wifi_ap_record_t *ap_record)
 }
 
 
-// WS数据解析处理回调
+/**
+ * @brief WebSocket数据接收处理回调函数
+ *
+ * 解析网页客户端发来的JSON指令：
+ * - scan指令：启动WiFi扫描
+ * - ssid+password：保存用户选择的WiFi凭据并触发连接
+ *
+ * @param payload 接收到的数据缓冲区
+ * @param len 数据长度
+ */
 void ws_receive_handle(uint8_t* payload, int len)
 {
 
@@ -228,30 +317,13 @@ void ws_receive_handle(uint8_t* payload, int len)
     }
 }
 
-//进入配网模式
+/**
+ * @brief 请求进入AP配网模式
+ *
+ * 通过事件组通知AP配网任务启动AP模式
+ */
 void AP_WIFI_apcfg()
 {
-    ESP_LOGI(TAG, "进入AP配网模式...");
-    
-    esp_err_t ret = WIFI_manager_AP();
-    if(ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "进入AP模式失败: %s", esp_err_to_name(ret));
-        return;
-    }
-    ESP_LOGI(TAG, "AP模式启动成功，IP地址: 192.168.100.1");
-    
-    //启动http服务器
-    ws_cfg_t ws_cfg =
-    {
-        .html_code = html_code,
-        .receive_fn = ws_receive_handle,
-    };
-    ret = Web_WS_Start(&ws_cfg);
-    if(ret != ESP_OK)
-    {
-        ESP_LOGE(TAG, "启动Web服务器失败: %s", esp_err_to_name(ret));
-        return;
-    }
-    ESP_LOGI(TAG, "Web服务器启动成功，请访问 http://192.168.100.1");
+    ESP_LOGI(TAG, "请求进入AP配网模式...");
+    xEventGroupSetBits(APcfg_ev, APCFG_START_BIT);
 }

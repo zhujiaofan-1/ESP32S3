@@ -1,3 +1,10 @@
+/**
+ * @file WS_Serve.c
+ * @brief WebSocket服务器实现文件
+ *
+ * 实现HTTP服务器和WebSocket服务，用于AP配网时的网页交互
+ */
+
 #include "WS_Serve.h"
 
 /*============================ ESP-IDF 头文件 ============================*/
@@ -30,7 +37,6 @@ static int Socket_ID = -1;
  * @param r HTTP请求结构体指针
  * @return esp_err_t - ESP_OK表示成功，其他值表示失败
  */
-//http请求回调函数
 esp_err_t get_http_req(httpd_req_t *param)
 {
     //检查HTML内容是否有效

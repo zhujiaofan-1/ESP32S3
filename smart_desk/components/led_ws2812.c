@@ -4,6 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+/**
+ * @file led_ws2812.c
+ * @brief WS2812 RGB LED驱动实现文件
+ *
+ * 基于RMT外设实现WS2812可寻址RGB LED灯带驱动
+ */
+
 #include "esp_check.h"
 #include "led_ws2812.h"
 #include "driver/rmt_tx.h"
@@ -41,11 +48,16 @@ typedef struct {
 
 
 
-/** HSV转RGB
- * @param h:色调(0-360) s饱和度(0-100) v亮度(0-100)
- * @param rgb
- * @return 无
-*/
+/**
+ * @brief HSV转RGB颜色空间
+ *
+ * @param h 色调(0-360)
+ * @param s 饱和度(0-100)
+ * @param v 亮度(0-100)
+ * @param r 输出红色分量
+ * @param g 输出绿色分量
+ * @param b 输出蓝色分量
+ */
 static void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, uint32_t *g, uint32_t *b)
 {
     h %= 360; // h -> [0,360]
@@ -94,11 +106,16 @@ static void led_strip_hsv2rgb(uint32_t h, uint32_t s, uint32_t v, uint32_t *r, u
     }
 }
 
-/** RGB转HSV
- * @param rgb 传入的RGB值
- * @param hsv 传出的RGB值
- * @return 无
-*/
+/**
+ * @brief RGB转HSV颜色空间
+ *
+ * @param r 红色分量(0-255)
+ * @param g 绿色分量(0-255)
+ * @param b 蓝色分量(0-255)
+ * @param h 输出色调(0-360)
+ * @param s 输出饱和度(0-100)
+ * @param v 输出亮度(0-100)
+ */
 static void led_strip_rgb2hsv(uint32_t r, uint32_t g, uint32_t b, uint32_t *h, uint32_t *s, uint32_t *v)
 {
 	// 归一化到 [0.0, 1.0] 范围
@@ -158,14 +175,16 @@ static void led_strip_rgb2hsv(uint32_t r, uint32_t g, uint32_t b, uint32_t *h, u
     }
 }
 
-/** 编码回调函数
- * @param encoder 编码器
+/**
+ * @brief RMT编码LED灯带数据
+ *
+ * @param encoder RMT编码器句柄
  * @param channel RMT通道
  * @param primary_data 待编码用户数据
  * @param data_size 待编码用户数据长度
  * @param ret_state 编码状态
- * @return RMT符号个数
-*/
+ * @return size_t RMT符号个数
+ */
 static size_t rmt_encode_led_strip(rmt_encoder_t *encoder, rmt_channel_handle_t channel, const void *primary_data, size_t data_size, rmt_encode_state_t *ret_state)
 {
     /*
@@ -208,6 +227,12 @@ out:
     return encoded_symbols;
 }
 
+/**
+ * @brief 删除LED灯带编码器
+ *
+ * @param encoder RMT编码器句柄
+ * @return esp_err_t ESP_OK成功
+ */
 static esp_err_t rmt_del_led_strip_encoder(rmt_encoder_t *encoder)
 {
     rmt_led_strip_encoder_t *led_encoder = __containerof(encoder, rmt_led_strip_encoder_t, base);
@@ -217,6 +242,12 @@ static esp_err_t rmt_del_led_strip_encoder(rmt_encoder_t *encoder)
     return ESP_OK;
 }
 
+/**
+ * @brief 重置LED灯带编码器
+ *
+ * @param encoder RMT编码器句柄
+ * @return esp_err_t ESP_OK成功
+ */
 static esp_err_t rmt_led_strip_encoder_reset(rmt_encoder_t *encoder)
 {
     rmt_led_strip_encoder_t *led_encoder = __containerof(encoder, rmt_led_strip_encoder_t, base);
@@ -226,10 +257,12 @@ static esp_err_t rmt_led_strip_encoder_reset(rmt_encoder_t *encoder)
     return ESP_OK;
 }
 
-/** 创建一个基于WS2812时序的编码器
- * @param ret_encoder 返回的编码器，这个编码器在使用rmt_transmit函数传输时会用到
- * @return ESP_OK or ESP_FAIL
-*/
+/**
+ * @brief 创建基于WS2812时序的RMT编码器
+ *
+ * @param ret_encoder 返回的编码器，在使用rmt_transmit函数传输时会用到
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
+ */
 esp_err_t rmt_new_led_strip_encoder(rmt_encoder_handle_t *ret_encoder)
 {
     esp_err_t ret = ESP_OK;
@@ -290,12 +323,14 @@ err:
     return ret;
 }
 
-/** 初始化WS2812外设
+/**
+ * @brief 初始化WS2812外设
+ *
  * @param gpio 控制WS2812的管脚
  * @param maxled 控制WS2812的个数
- * @param led_handle 返回的控制句柄
- * @return ESP_OK or ESP_FAIL
-*/
+ * @param handle 返回的控制句柄
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
+ */
 esp_err_t ws2812_init(gpio_num_t gpio,int maxled,ws2812_strip_handle_t* handle)
 {
     struct ws2812_strip_t* led_handle = NULL;
@@ -332,10 +367,12 @@ esp_err_t ws2812_init(gpio_num_t gpio,int maxled,ws2812_strip_handle_t* handle)
     return ESP_OK;
 }
 
-/** 反初始化WS2812外设
+/**
+ * @brief 反初始化WS2812外设
+ *
  * @param handle 初始化的句柄
- * @return ESP_OK or ESP_FAIL
-*/
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
+ */
 esp_err_t ws2812_deinit(ws2812_strip_handle_t handle)
 {
     if(!handle)
@@ -347,12 +384,16 @@ esp_err_t ws2812_deinit(ws2812_strip_handle_t handle)
     return ESP_OK;
 }
 
-/** 向某个WS2812写入RGB数据
+/**
+ * @brief 向某个WS2812写入RGB数据
+ *
  * @param handle 句柄
  * @param index 第几个WS2812（0开始）
- * @param r,g,b RGB数据
- * @return ESP_OK or ESP_FAIL
-*/
+ * @param r 红色分量（0-255）
+ * @param g 绿色分量（0-255）
+ * @param b 蓝色分量（0-255）
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
+ */
 esp_err_t ws2812_write(ws2812_strip_handle_t handle,uint32_t index,uint32_t r,uint32_t g,uint32_t b)
 {
      rmt_transmit_config_t tx_config = {
@@ -369,12 +410,14 @@ esp_err_t ws2812_write(ws2812_strip_handle_t handle,uint32_t index,uint32_t r,ui
     
 }
 
-/** 设置某个WS2812亮度
+/**
+ * @brief 设置某个WS2812亮度
+ *
  * @param handle 句柄
  * @param index 第几个WS2812（0开始）
  * @param brightness 亮度 (0-100)
- * @return ESP_OK or ESP_FAIL
-*/
+ * @return esp_err_t ESP_OK成功，ESP_FAIL失败
+ */
 esp_err_t ws2812_set_brightness(ws2812_strip_handle_t handle,uint32_t index,uint32_t brightness)
 {
     if(index >= handle->led_num)
@@ -393,11 +436,13 @@ esp_err_t ws2812_set_brightness(ws2812_strip_handle_t handle,uint32_t index,uint
     return ws2812_write(handle,index,r,g,b);
 }
 
-/** 获取某个WS2812亮度
+/**
+ * @brief 获取某个WS2812亮度
+ *
  * @param handle 句柄
  * @param index 第几个WS2812（0开始）
- * @return 亮度值
-*/
+ * @return uint32_t 亮度值
+ */
 uint32_t ws2812_get_brightness(ws2812_strip_handle_t handle,uint32_t index)
 {
     if(index >= handle->led_num)

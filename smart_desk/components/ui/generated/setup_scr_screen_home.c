@@ -17,6 +17,7 @@
 #include <time.h>
 #include "my_sntp.h"
 #include "WIFI_manager.h"
+#include "weather.h"
 
 
 
@@ -34,29 +35,6 @@ void setup_scr_screen_home(lv_ui *ui)
     lv_obj_set_style_bg_opa(ui->screen_home, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_color(ui->screen_home, lv_color_hex(0x000000), LV_PART_MAIN|LV_STATE_DEFAULT);
     lv_obj_set_style_bg_grad_dir(ui->screen_home, LV_GRAD_DIR_NONE, LV_PART_MAIN|LV_STATE_DEFAULT);
-
-    //Write codes screen_home_btn_2
-    ui->screen_home_btn_2 = lv_button_create(ui->screen_home);
-    lv_obj_set_pos(ui->screen_home_btn_2, -335, -151);
-    lv_obj_set_size(ui->screen_home_btn_2, 100, 50);
-    ui->screen_home_btn_2_label = lv_label_create(ui->screen_home_btn_2);
-    lv_label_set_text(ui->screen_home_btn_2_label, "Button");
-    lv_label_set_long_mode(ui->screen_home_btn_2_label, LV_LABEL_LONG_WRAP);
-    lv_obj_align(ui->screen_home_btn_2_label, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style_pad_all(ui->screen_home_btn_2, 0, LV_STATE_DEFAULT);
-    lv_obj_set_width(ui->screen_home_btn_2_label, LV_PCT(100));
-
-    //Write style for screen_home_btn_2, Part: LV_PART_MAIN, State: LV_STATE_DEFAULT.
-    lv_obj_set_style_bg_opa(ui->screen_home_btn_2, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(ui->screen_home_btn_2, lv_color_hex(0x2195f6), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_grad_dir(ui->screen_home_btn_2, LV_GRAD_DIR_NONE, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(ui->screen_home_btn_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_radius(ui->screen_home_btn_2, 5, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(ui->screen_home_btn_2, 0, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui->screen_home_btn_2, lv_color_hex(0xffffff), LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_font(ui->screen_home_btn_2, &lv_font_montserratMedium_16, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui->screen_home_btn_2, 255, LV_PART_MAIN|LV_STATE_DEFAULT);
-    lv_obj_set_style_text_align(ui->screen_home_btn_2, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN|LV_STATE_DEFAULT);
 
     //Write codes screen_home_clock_now
     static bool screen_home_clock_now_timer_enabled = false;
@@ -366,27 +344,4 @@ void setup_scr_screen_home(lv_ui *ui)
     //Init events for screen.
     events_init_screen_home(ui);
 
-    //防止切屏的时候变回预设值
-    bool WIFI_state = WIFI_manager_is_connect();
-    static char WIFI_img_path[32];
-    if(WIFI_state)
-    {
-        snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_connect.png");
-    }else{
-        snprintf(WIFI_img_path, sizeof(WIFI_img_path), "/img/wifi_disconnect.png");
-    }
-
-
-    time_t now = time(NULL);
-    struct tm t;
-    localtime_r(&now, &t);
-    screen_home_clock_now_hour_value = t.tm_hour;
-    screen_home_clock_now_min_value = t.tm_min;
-    screen_home_clock_now_sec_value = t.tm_sec;
-    lv_img_set_src(ui->screen_home_img_wifi, WIFI_img_path);
-    
-    lv_label_set_text_fmt(ui->screen_home_clock_now, "%d:%02d:%02d", t.tm_hour, t.tm_min, t.tm_sec);
-    static const char* week_day_text[] = {"星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"};
-    lv_label_set_text_fmt(ui->screen_home_label_day, "%d年%d月%d日", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday);
-    lv_label_set_text_fmt(ui->screen_home_label_week, "%s", week_day_text[t.tm_wday]);
 }

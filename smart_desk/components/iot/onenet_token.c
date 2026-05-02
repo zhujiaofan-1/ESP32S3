@@ -1,3 +1,10 @@
+/**
+ * @file onenet_token.c
+ * @brief OneNet设备Token生成实现文件
+ *
+ * 实现Base64编解码和HMAC签名算法，用于生成OneNet设备认证Token
+ */
+
 #include "onenet_token.h"
 #include "esp_log.h"
 
@@ -311,11 +318,14 @@ int Base64_Decode(const byte* in, word32 inLen, byte* out, word32* outLen)
 }
 
 /**
- * 计算hmd
+ * @brief 计算HMAC签名
+ *
+ * @param method 签名算法（MD5/SHA1/SHA256）
  * @param key 秘钥
- * @param content 内容
- * @param output 输出md5值
- * @return 无
+ * @param key_len 秘钥长度
+ * @param content 待签名内容
+ * @param content_len 内容长度
+ * @param output 输出签名值缓冲区
  */
 static void calc_hmd(enum sig_method_e method,unsigned char* key,size_t key_len,unsigned char *content,size_t content_len,unsigned char *output)
 {
@@ -345,7 +355,19 @@ static void calc_hmd(enum sig_method_e method,unsigned char* key,size_t key_len,
 #define DEV_TOKEN_SIG_METHOD_SHA1 "sha1"
 #define DEV_TOKEN_SIG_METHOD_SHA256 "sha256"
 
-//计算token
+/**
+ * @brief 生成OneNet设备认证Token
+ *
+ * 根据产品ID、设备名和访问密钥，使用指定签名算法生成认证Token
+ *
+ * @param token 输出Token缓冲区
+ * @param method 签名算法
+ * @param exp_time Token过期时间戳
+ * @param product_id 产品ID
+ * @param dev_name 设备名称
+ * @param access_key 产品访问密钥
+ * @return int32_t 0成功，其他失败
+ */
 int32_t
 dev_token_generate(char* token, enum sig_method_e method, uint32_t exp_time, const char* product_id, const char* dev_name, const char* access_key)
 {

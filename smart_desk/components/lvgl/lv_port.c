@@ -113,6 +113,7 @@ void indev_read(lv_indev_t * indev, lv_indev_data_t * data)
 {
     int16_t x = 0, y = 0;
     int state = 0;
+    //读取触摸屏坐标
     ft6336u_read(&x, &y, &state);
     // 需要交换坐标系，因为从竖屏变成横屏了
     data->point.x = (LCD_WIDTH - y) - 1;
@@ -154,7 +155,7 @@ esp_err_t lv_port_Init(void)
         .io_handle = io_handle,
         .panel_handle = lcd_panel,
         .buffer_size = LCD_WIDTH * 120,  // 内存区域
-        .double_buffer = 0,      // 双缓存
+        .double_buffer = 1,      // 双缓存
         .hres = LCD_WIDTH,
         .vres = LCD_HEIGHT,
 

@@ -1,3 +1,10 @@
+/**
+ * @file XL9555.h
+ * @brief XL9555 I2C IO扩展芯片驱动接口
+ *
+ * 提供XL9555 16位I2C IO扩展芯片的读写和配置功能
+ */
+
 #ifndef _XL9555_H
 #define _XL9555_H
 

@@ -1,3 +1,10 @@
+/**
+ * @file my_sntp.c
+ * @brief SNTP网络对时实现文件
+ *
+ * 配置NTP服务器并启动时间同步，设置中国标准时区
+ */
+
 #include "my_sntp.h"
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +14,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+/**
+ * @brief 初始化SNTP时间同步
+ *
+ * 配置NTP服务器（阿里云、Apple、NTP池）并注册对时回调函数，
+ * 设置时区为CST-8（中国标准时间）
+ *
+ * @param f 时间同步完成回调函数
+ */
 void my_sntp_Init(sntp_sync_time_cb_t f)
 {
     if(! esp_sntp_enabled())

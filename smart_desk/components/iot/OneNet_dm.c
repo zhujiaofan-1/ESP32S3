@@ -1,3 +1,10 @@
+/**
+ * @file OneNet_dm.c
+ * @brief OneNet设备物模型实现文件
+ *
+ * 实现OneNet物模型的数据解析、属性上报、指令回复和主题订阅功能
+ */
+
 #include "OneNet_dm.h"
 
 /*============================ ESP-IDF 头文件 ============================*/
@@ -14,25 +21,45 @@
 #include "OneNet_MQTT.h"
 #include "led_ws2812.h"
 #include "cJSON.h"
+#include "led_control.h"
 
 #include <string.h>
 
 
-//ws2812操作句柄
-static ws2812_strip_handle_t    ws2812_handle = NULL;
 
-
-static int LED_brightness = 0;
 static bool LED_Status = false;
-static int ws2812_red = 0;
-static int ws2812_green = 0;
-static int ws2812_blue = 0;
 
+extern int RGB_red;
+extern int RGB_green;
+extern int RGB_blue;
+extern int LED_brightness;
+extern int RGB_brightness;
+
+/**
+ * @brief 构建OneNet物模型主题
+ *
+ * 拼接格式：$sys/{产品ID}/{设备名}/{后缀}
+ *
+ * @param buf 输出主题缓冲区
+ * @param len 缓冲区大小
+ * @param suffix 主题后缀
+ */
 static void build_topic(char* buf, size_t len, const char* suffix)
 {
     snprintf(buf, len, "$sys/%s/%s/%s", ONENET_PRODUCT_ID, ONENET_DEVICE_NAME, suffix);
 }
 
+/**
+ * @brief 发送指令回复消息
+ *
+ * 构建回复JSON并通过MQTT发布到指定主题
+ *
+ * @param mqtt_handle MQTT客户端句柄
+ * @param topic_suffix 主题后缀
+ * @param id 指令ID
+ * @param error_code 错误码
+ * @param msg 回复消息
+ */
 static void send_ack(esp_mqtt_client_handle_t mqtt_handle, const char* topic_suffix, const char* id, int error_code, const char* msg)
 {
     char topic[128];
@@ -50,48 +77,6 @@ static void send_ack(esp_mqtt_client_handle_t mqtt_handle, const char* topic_suf
     cJSON_Delete(replay_js);
 }
 
-
-/**
- * @brief 初始化物模型相关外设
- *
- * 初始化WS2812 RGB LED和LEDC PWM调光外设
- *
- * @param 无
- * @return 无
- */
-void OneNet_dm_Init(void)
-{
-    //初始化WS2812接口
-    ws2812_init(GPIO_NUM_18, 3, &ws2812_handle);
-
-    //初始化LEDC
-    //初始化定时器
-    ledc_timer_config_t led_timer =
-    {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .clk_cfg =LEDC_AUTO_CLK,
-        .duty_resolution = LEDC_TIMER_12_BIT,
-        .freq_hz = 5000,
-        .timer_num = LEDC_TIMER_0,
-    };
-    ledc_timer_config(&led_timer);
-
-    //初始化PWM
-    ledc_channel_config_t led_channel =
-    {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LEDC_CHANNEL_0,
-        .duty = 0,
-        .gpio_num = GPIO_NUM_15,
-        .timer_sel = LEDC_TIMER_0,
-    };
-    ledc_channel_config(&led_channel);
-
-    //停止之前的渐变
-    ledc_stop(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, 0);
-    //启动渐变
-    ledc_fade_func_install(0);
-}
 
 
 
@@ -137,38 +122,37 @@ void OneNet_property_handle(cJSON* property)
             {
                 LED_brightness = (int)cJSON_GetNumberValue(name_js);
                 ESP_LOGI("OneNet_dm", "收到亮度设置: %d", LED_brightness);
-                //转换为占空比来控制亮度
-                int duty = LED_brightness * 4095 / 100;
-                ESP_LOGI("OneNet_dm", "设置占空比: %d", duty);
-                ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty, 0);
+                //控制亮度
+                light_control(LED_brightness);
+                //更新UI上的slider
+                update_slider_values();
                 
             }else if(strcmp(name_js->string, "LightSwitch") == 0)
             {
                 if(cJSON_IsTrue(name_js))
                 {
                     LED_Status = true;
-                    int duty = LED_brightness * 4095/100;
-                    ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty, 0);
+                    light_control(LED_brightness);
                     ESP_LOGI("OneNet_dm", "灯已打开，亮度: %d", LED_brightness);
                 }else{                  //关灯
                     LED_Status = false;
                     LED_brightness = 0;
-                    int duty = 0;
-                    ledc_set_duty_and_update(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, duty, 0);
+                    light_control(LED_brightness);
                     ESP_LOGI("OneNet_dm", "灯已关闭");
                 }
+                //更新UI上的slider
+                update_slider_values();
             }else if(strcmp(name_js->string, "RGBColor") == 0)
             {
                 //再次提取数组数据
-                ws2812_red = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Red")) ;
-                ws2812_green = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Green")) ;
-                ws2812_blue = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Blue")) ;
+                RGB_red = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Red")) ;
+                RGB_green = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Green")) ;
+                RGB_blue = cJSON_GetNumberValue(cJSON_GetObjectItem(name_js, "Blue")) ;
 
                 //设置
-                for(int i = 0; i < 3; i++)
-                {
-                    ws2812_write(ws2812_handle, i, ws2812_red, ws2812_green, ws2812_blue);
-                }
+                RGB_control(RGB_brightness, RGB_red, RGB_green, RGB_blue);
+                //更新UI上的slider
+                update_slider_values();
             }
 
             //下一个对象
@@ -228,9 +212,9 @@ cJSON* OneNet_property_upload(void)
     //RGB值
     cJSON* RGBColor_js = cJSON_AddObjectToObject(params_js,"RGBColor");
     cJSON* color_value_js = cJSON_AddObjectToObject(RGBColor_js,"value");
-    cJSON_AddNumberToObject(color_value_js, "Red", ws2812_red);
-    cJSON_AddNumberToObject(color_value_js, "Green", ws2812_green);
-    cJSON_AddNumberToObject(color_value_js, "Blue", ws2812_blue);
+    cJSON_AddNumberToObject(color_value_js, "Red", RGB_red);
+    cJSON_AddNumberToObject(color_value_js, "Green", RGB_green);
+    cJSON_AddNumberToObject(color_value_js, "Blue", RGB_blue);
 
     return root;
 }

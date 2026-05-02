@@ -21,8 +21,6 @@ typedef struct
   
 	lv_obj_t *screen_home;
 	bool screen_home_del;
-	lv_obj_t *screen_home_btn_2;
-	lv_obj_t *screen_home_btn_2_label;
 	lv_obj_t *screen_home_clock_now;
 	lv_obj_t *screen_home_label_day;
 	lv_obj_t *screen_home_label_week;
@@ -81,6 +79,9 @@ typedef struct
 	lv_obj_t *screen_wifi_label_wifi_ip;
 	lv_obj_t *screen_wifi_img_wifi_title;
 	lv_obj_t *screen_wifi_label_wifi_title;
+	lv_obj_t *screen_wifi_label_wifi_state;
+	lv_obj_t *screen_wifi_btn_connect_wifi;
+	lv_obj_t *screen_wifi_btn_connect_wifi_label;
 	lv_obj_t *g_kb_top_layer;
 }lv_ui;
 
@@ -124,11 +125,11 @@ LV_IMAGE_DECLARE(_screen_control_RGB565A8_320x240);
 LV_IMAGE_DECLARE(_screen_wifi_RGB565A8_320x240);
 LV_IMAGE_DECLARE(_wifi_RGB565A8_52x37);
 
-LV_FONT_DECLARE(lv_font_montserratMedium_16)
-LV_FONT_DECLARE(lv_font_montserratMedium_12)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_40)
+LV_FONT_DECLARE(lv_font_montserratMedium_16)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_18)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_36)
+LV_FONT_DECLARE(lv_font_montserratMedium_12)
 LV_FONT_DECLARE(lv_font_ZiTiQuanWeiJunHeiW22_16)
 LV_FONT_DECLARE(lv_font_SourceHanSerifSC_Regular_18)
 

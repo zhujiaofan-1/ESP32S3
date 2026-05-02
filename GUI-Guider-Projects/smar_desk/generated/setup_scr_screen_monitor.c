@@ -122,7 +122,7 @@ void setup_scr_screen_monitor(lv_ui *ui)
 
     //Write codes screen_monitor_label_cpu_value1
     ui->screen_monitor_label_cpu_value1 = lv_label_create(ui->screen_monitor_cont_cpu);
-    lv_obj_set_pos(ui->screen_monitor_label_cpu_value1, 88, 51);
+    lv_obj_set_pos(ui->screen_monitor_label_cpu_value1, 87, 51);
     lv_obj_set_size(ui->screen_monitor_label_cpu_value1, 45, 18);
     lv_label_set_text(ui->screen_monitor_label_cpu_value1, "80%");
     lv_label_set_long_mode(ui->screen_monitor_label_cpu_value1, LV_LABEL_LONG_WRAP);
@@ -392,7 +392,7 @@ void setup_scr_screen_monitor(lv_ui *ui)
 
     //Write codes screen_monitor_label_state
     ui->screen_monitor_label_state = lv_label_create(ui->screen_monitor);
-    lv_obj_set_pos(ui->screen_monitor_label_state, 110, 201);
+    lv_obj_set_pos(ui->screen_monitor_label_state, 109, 201);
     lv_obj_set_size(ui->screen_monitor_label_state, 100, 23);
     lv_label_set_text(ui->screen_monitor_label_state, "未连接");
     lv_label_set_long_mode(ui->screen_monitor_label_state, LV_LABEL_LONG_WRAP);

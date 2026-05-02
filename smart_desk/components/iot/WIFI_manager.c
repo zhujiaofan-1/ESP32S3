@@ -29,12 +29,13 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
+#include "custom.h"
 
 
 #define TAG         "WIFI_Manager"
 
 //AP热点
-static const char* AP_ssid_name = "ESP32-AP";
+static const char* AP_ssid_name = "ESP32S3-AP";
 static const char* AP_password = "12345678";
 
 static esp_netif_t* esp_netif_AP;       //保存AP接口返回值，用于设置AP
@@ -50,6 +51,10 @@ static p_wifi_state_cb WIFI_callback = NULL;
 
 //当前STA连接状态
 static bool STA_Connect_State = false;
+
+static char WIFI_ssid[64] = {0};
+
+extern lv_ui guider_ui;
 
 /**
  * @brief WIFI和IP事件处理函数
@@ -142,6 +147,12 @@ static void event_handler(void* arg, esp_event_base_t event_base,
          */
         if(event_id == IP_EVENT_STA_GOT_IP)     /**< 得到分配的IP */
         {
+            wifi_config_t current_config;
+            if(esp_wifi_get_config(WIFI_IF_STA, &current_config) == ESP_OK)
+            {
+                snprintf(WIFI_ssid, sizeof(WIFI_ssid), "%s", (char*)current_config.sta.ssid);
+            }
+
             //检查回调函数是否注册
             if(WIFI_callback != NULL)
             {
@@ -249,6 +260,23 @@ void WIFI_manager_Init(p_wifi_state_cb f)
 }
 
 /**
+ * @brief 获取当前连接的WiFi名称
+ *
+ * @return char* WiFi SSID字符串指针
+ */
+char* get_wifi_ssid(void)
+{
+    return WIFI_ssid; 
+}
+
+char* get_AP_wifi_ssid(void)
+{
+    return AP_ssid_name;
+}
+
+
+
+/**
  * @brief 连接到WIFI热点
  *
  * 该函数配置并连接到指定的WIFI热点（SSID和密码）
@@ -277,6 +305,8 @@ void WIFI_manager_Init(p_wifi_state_cb f)
  */
 void WIFI_manager_connect(const char* ssid,const char* password)
 {
+    snprintf(WIFI_ssid, sizeof(WIFI_ssid), "%s", ssid);
+
     wifi_mode_t mode;
 
     /**
@@ -321,7 +351,15 @@ void WIFI_manager_connect(const char* ssid,const char* password)
 }
 
 
-//进入AP+STA模式
+/**
+ * @brief 切换到AP+STA模式
+ *
+ * 停止当前WiFi连接，切换为AP+STA模式，
+ * 配置AP热点参数（SSID: ESP32-AP, 密码: 12345678），
+ * 设置AP的IP地址为192.168.100.1
+ *
+ * @return esp_err_t ESP_OK成功，其他失败
+ */
 esp_err_t WIFI_manager_AP(void)
 {
    //获取当前的模式
@@ -368,7 +406,13 @@ esp_err_t WIFI_manager_AP(void)
 }
 
 
-//扫描任务
+/**
+ * @brief WiFi扫描任务
+ *
+ * 阻塞执行WiFi扫描，扫描完成后调用回调函数返回结果
+ *
+ * @param r 扫描回调函数指针（转换为p_wifi_scan_cb类型）
+ */
 static void Scan_Task(void * r)
 {
     uint16_t AP_Count = 0;
@@ -407,7 +451,14 @@ static void Scan_Task(void * r)
 }
 
 
-//启动扫描
+/**
+ * @brief 启动WiFi扫描
+ *
+ * 通过信号量防止重复扫描，创建独立任务执行阻塞扫描
+ *
+ * @param f 扫描结果回调函数
+ * @return esp_err_t ESP_OK成功，ESP_ERR_INVALID_STATE正在扫描中
+ */
 esp_err_t WIFI_manager_scan(p_wifi_scan_cb f)
 {
     //获取信号量
@@ -423,6 +474,11 @@ esp_err_t WIFI_manager_scan(p_wifi_scan_cb f)
     
 }
 
+/**
+ * @brief 查询WiFi是否已连接
+ *
+ * @return true 已连接，false 未连接
+ */
 bool WIFI_manager_is_connect(void)
 {
     return STA_Connect_State;

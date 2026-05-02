@@ -1,3 +1,14 @@
+/**
+ * @file OneNet_MQTT.c
+ * @brief OneNet MQTT客户端实现文件
+ *
+ * 该模块负责与OneNet物联网平台的MQTT通信，包括：
+ * - MQTT客户端初始化和连接
+ * - 主题订阅和消息发布
+ * - 下行数据解析和分发
+ * - OTA升级通知处理
+ */
+
 #include "OneNet_MQTT.h"
 #include "OneNet_OTA.h"
 #include "cJSON.h"
@@ -6,6 +17,8 @@
 #include "mqtt_client.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
@@ -17,13 +30,30 @@
 
 static esp_mqtt_client_handle_t mqtt_handle = NULL;
 static onenet_connected_cb_t connected_callback = NULL;
+static volatile bool mqtt_running = false;
 
+/**
+ * @brief 注册MQTT连接成功回调函数
+ *
+ * @param cb 连接成功时的回调函数
+ */
 void OneNet_RegisterConnectedCallback(onenet_connected_cb_t cb)
 {
     connected_callback = cb;
 }
 
 
+/**
+ * @brief MQTT事件处理函数
+ *
+ * 处理MQTT连接、断开、数据接收等事件，
+ * 下行数据包括属性设置指令和OTA升级通知
+ *
+ * @param handler_args 用户参数
+ * @param base 事件基类
+ * @param event_id 事件ID
+ * @param event_data 事件数据
+ */
 static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%" PRIi32 "", base, event_id);
@@ -56,7 +86,29 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         break;
 
     case MQTT_EVENT_DISCONNECTED:
-        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED, 等待自动重连...");
+        break;
+
+    case MQTT_EVENT_ERROR:
+        ESP_LOGE(TAG, "MQTT_EVENT_ERROR");
+        if(event->error_handle)
+        {
+            if(event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
+            {
+                ESP_LOGE(TAG, "TCP传输错误, esp_tls_err=0x%x, esp_err=0x%x",
+                         event->error_handle->esp_tls_last_esp_err,
+                         event->error_handle->esp_transport_sock_errno);
+            }
+            else if(event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED)
+            {
+                ESP_LOGE(TAG, "连接被拒绝, return_code=0x%x",
+                         event->error_handle->connect_return_code);
+            }
+            else
+            {
+                ESP_LOGE(TAG, "未知错误类型: 0x%x", event->error_handle->error_type);
+            }
+        }
         break;
 
     case MQTT_EVENT_SUBSCRIBED:
@@ -107,27 +159,6 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
         }
 
         break;
-    case MQTT_EVENT_ERROR:
-        ESP_LOGE(TAG, "MQTT_EVENT_ERROR");
-        if(event->error_handle)
-        {
-            if(event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT)
-            {
-                ESP_LOGE(TAG, "TCP传输错误, esp_tls_err=0x%x, esp_err=0x%x",
-                         event->error_handle->esp_tls_last_esp_err,
-                         event->error_handle->esp_transport_sock_errno);
-            }
-            else if(event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED)
-            {
-                ESP_LOGE(TAG, "连接被拒绝, return_code=0x%x",
-                         event->error_handle->connect_return_code);
-            }
-            else
-            {
-                ESP_LOGE(TAG, "未知错误类型: 0x%x", event->error_handle->error_type);
-            }
-        }
-        break;
     default:
         ESP_LOGI(TAG, "Other event id:%d", event->event_id);
         break;
@@ -138,14 +169,20 @@ static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_
 
 
 
+/**
+ * @brief 启动OneNet MQTT客户端
+ *
+ * 初始化MQTT客户端配置，生成认证Token并启动连接。
+ * 连接成功后会自动订阅主题、上报属性和OTA版本号
+ *
+ * @return esp_err_t ESP_OK成功，其他失败
+ */
 esp_err_t OneNet_Start(void)
 {
-    if(mqtt_handle != NULL)
+    if(mqtt_running)
     {
-        ESP_LOGW(TAG, "MQTT客户端已存在，先销毁旧连接");
-        esp_mqtt_client_stop(mqtt_handle);
-        esp_mqtt_client_destroy(mqtt_handle);
-        mqtt_handle = NULL;
+        ESP_LOGW(TAG, "MQTT已在运行中");
+        return ESP_OK;
     }
 
     ESP_LOGI(TAG, "当前可用堆内存: %d bytes", esp_get_free_heap_size());
@@ -175,7 +212,32 @@ esp_err_t OneNet_Start(void)
 
     esp_mqtt_client_register_event(mqtt_handle, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
 
-    return esp_mqtt_client_start(mqtt_handle);
+    esp_err_t ret = esp_mqtt_client_start(mqtt_handle);
+    if(ret == ESP_OK)
+    {
+        mqtt_running = true;
+    }
+    return ret;
+}
+
+/**
+ * @brief 停止OneNet MQTT客户端
+ *
+ * 销毁MQTT客户端并释放资源，用于AP配网模式切换前断开MQTT连接
+ */
+void OneNet_Stop(void)
+{
+    if(!mqtt_running || mqtt_handle == NULL)
+    {
+        ESP_LOGW(TAG, "MQTT未运行，无需停止");
+        return;
+    }
+
+    mqtt_running = false;
+    ESP_LOGI(TAG, "正在停止MQTT客户端...");
+    esp_mqtt_client_destroy(mqtt_handle);
+    mqtt_handle = NULL;
+    ESP_LOGI(TAG, "MQTT客户端已停止");
 }
 
 

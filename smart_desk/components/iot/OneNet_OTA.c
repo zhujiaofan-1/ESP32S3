@@ -1,3 +1,14 @@
+/**
+ * @file OneNet_OTA.c
+ * @brief OneNet OTA升级实现文件
+ *
+ * 实现OneNet平台的OTA固件升级功能，包括：
+ * - 版本号上报
+ * - 升级任务检测
+ * - 固件下载和安装
+ * - 升级进度上报
+ */
+
 #include "OneNet_OTA.h"
 
 /*============================ ESP-IDF 头文件 ============================*/
@@ -39,7 +50,6 @@ static int task_id = 0;
  *
  * @return const char* 返回版本号字符串指针
  */
-//获取版本号
 const char* get_app_version(void)
 {
     static char app_version[32] = {0};
@@ -70,7 +80,6 @@ const char* get_app_version(void)
  * @param valid 1表示标记为合法，0表示标记为非法并回滚
  * @return 无
  */
-//传入0，把当前分区标记为不合法
 void set_app_valid(int valid)
 {
     esp_ota_img_states_t state;
@@ -235,7 +244,6 @@ static esp_err_t OneNet_ota_http_connect(const char* url,esp_http_client_method_
  *
  * @return esp_err_t ESP_OK表示上报成功，其他值表示失败
  */
-//上报版本号
 esp_err_t OneNet_ota_upload_version(void)
 {
     char url[128];     // http://iot-api.heclouds.com/fuse-ota/{pro_id}/{dev_name}/version
@@ -313,7 +321,6 @@ Content-Type: application/json
  *
  * @return esp_err_t ESP_OK表示检测到升级任务，ESP_FAIL表示无升级任务或检测失败
  */
-//检测升级任务函数
 esp_err_t OneNet_ota_check_task(void)
 {
     char url[128];    
@@ -395,7 +402,6 @@ Content-Length:20
  * @param step 升级进度百分比（0-100）
  * @return esp_err_t ESP_OK表示上报成功，其他值表示失败
  */
-//上报任务升级状态
 esp_err_t OneNet_ota_upload_state(int step)
 {
     char url[128];     
@@ -441,7 +447,6 @@ esp_err_t OneNet_ota_upload_state(int step)
  * @param client HTTP客户端句柄
  * @return esp_err_t ESP_OK表示设置成功，其他值表示失败
  */
-//下载升级包的回调函数，用于发送请求头
 esp_err_t OneNet_ota_init_cb(esp_http_client_handle_t client)
 {
 /*
@@ -480,7 +485,6 @@ host:iot-api.heclouds.com
  * @param tid 升级任务ID
  * @return esp_err_t ESP_OK表示升级成功，其他值表示升级失败
  */
-//下载升级包
 esp_err_t OneNet_ota_download(int tid)
 {
     esp_err_t ota_ret = ESP_FAIL;
@@ -521,7 +525,6 @@ esp_err_t OneNet_ota_download(int tid)
  * @param param 任务参数（未使用）
  * @return 无
  */
-//执行操作的任务
 static void OneNet_ota_Task(void* param)
 {
     esp_err_t ret = ESP_FAIL;
