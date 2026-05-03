@@ -265,7 +265,7 @@ void app_main(void)
     // 初始化 XL9555 芯片，配置中断回调引脚
     XL9555_Init(GPIO_NUM_10, GPIO_NUM_11, GPIO_NUM_17, XL9555_Input_callback);
 
-    XL9555_IO_Cofig(0xffff & (~(IO0_0 | IO1_3 | IO1_2)));    //设置为输入模式,IO_0需要为输出
+    XL9555_IO_Cofig(0xffff & (~(IO1_3 | IO1_2)));    //设置为输入模式,IO_0需要为输出
 
     // 初始化按键
     app_button_init();
